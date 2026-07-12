@@ -21,6 +21,8 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { EscrowTimelineCard } from '../components/EscrowTimelineCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../services/supabaseClient';
+
 
 export const Dashboard: React.FC = () => {
   const { user, wallet, activeRole, refreshWallet, switchUser } = useAuth();
@@ -109,9 +111,19 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 4500);
-    return () => clearInterval(interval);
+
+    // ── Supabase Realtime: push updates to all connected clients instantly ──
+    const channel = supabase
+      .channel('agritrust-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' },     () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'offers' },       () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },       () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' },() => fetchData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user, activeRole]);
+
 
   // Handle Redirection if not logged in
   useEffect(() => {
@@ -442,24 +454,24 @@ export const Dashboard: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <div className="glass-card rounded-2xl p-5 border-slate-805 space-y-3 shadow-xl">
+        <div className="glass-card rounded-2xl p-5 border-gray-200 space-y-3 shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Connection Status</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Connection Status</span>
             <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/20 uppercase">Connected</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-white leading-none">Cardano Preview Testnet</p>
-            <p className="text-[10px] text-slate-500 mt-1.5 font-mono">Live Sync: Active</p>
+            <p className="text-sm font-bold text-gray-900 leading-none">Cardano Preview Testnet</p>
+            <p className="text-[10px] text-gray-400 mt-1.5 font-mono">Live Sync: Active</p>
           </div>
         </div>
 
-        <div className="glass-card rounded-2xl p-5 border-slate-805 space-y-3 shadow-xl">
+        <div className="glass-card rounded-2xl p-5 border-gray-200 space-y-3 shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Wallet Link</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Wallet Link</span>
             <span className="rounded bg-blue-500/10 px-2 py-0.5 text-[9px] font-bold text-blue-400 border border-blue-500/20 uppercase">Web3 Key</span>
           </div>
           <div>
-            <p className="text-sm font-mono font-semibold text-white leading-none truncate">
+            <p className="text-sm font-mono font-semibold text-gray-900 leading-none truncate">
               {wallet ? wallet.address : 'Disconnected'}
             </p>
             <p className="text-[10px] text-emerald-400 mt-1.5 font-semibold">
@@ -468,35 +480,35 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="glass-card rounded-2xl p-5 border-slate-805 space-y-3 shadow-xl">
+        <div className="glass-card rounded-2xl p-5 border-gray-200 space-y-3 shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Merchant Rating</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Merchant Rating</span>
             <span className="rounded bg-purple-500/10 px-2 py-0.5 text-[9px] font-bold text-purple-400 border border-purple-500/20 uppercase">Audit Trail</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-white leading-none">Trust Score</p>
+            <p className="text-sm font-bold text-gray-900 leading-none">Trust Score</p>
             <p className="text-sm font-black text-emerald-400 mt-1.5">
               {user ? calculateTrustScore(user, true) : 100}% Verified
             </p>
           </div>
         </div>
 
-        <div className="glass-card rounded-2xl p-5 border-slate-805 space-y-3 shadow-xl">
+        <div className="glass-card rounded-2xl p-5 border-gray-200 space-y-3 shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Latest Activity</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Latest Activity</span>
             <span className="rounded bg-orange-500/10 px-2 py-0.5 text-[9px] font-bold text-orange-400 border border-orange-500/20 uppercase">Update Loop</span>
           </div>
           <div>
-            <p className="text-xs font-semibold text-white leading-none truncate">
+            <p className="text-xs font-semibold text-gray-900 leading-none truncate">
               {orders.length > 0 ? `Latest Order Status: ${orders[0].status.replace(/_/g, ' ')}` : 'Ready for direct trade'}
             </p>
-            <p className="text-[10px] text-slate-500 mt-1.5 font-mono">Blockchain block height verified</p>
+            <p className="text-[10px] text-gray-400 mt-1.5 font-mono">Blockchain block height verified</p>
           </div>
         </div>
       </motion.div>
 
       {loading && products.length === 0 ? (
-        <div className="flex h-96 items-center justify-center text-slate-400">
+        <div className="flex h-96 items-center justify-center text-gray-500">
           <div className="flex flex-col items-center space-y-3">
             <RefreshCw className="h-8 w-8 text-emerald-500 animate-spin" />
             <span className="text-sm font-semibold tracking-wide">Syncing with Cardano Ledger...</span>
@@ -509,41 +521,41 @@ export const Dashboard: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-card rounded-2xl p-6 border-slate-805 max-w-xl mx-auto space-y-6 shadow-2xl"
+              className="glass-card rounded-2xl p-6 border-gray-200 max-w-xl mx-auto space-y-6 shadow-2xl"
             >
-              <div className="flex items-center space-x-4 pb-6 border-b border-slate-900">
+              <div className="flex items-center space-x-4 pb-6 border-b border-gray-100">
                 {user.avatar_url ? (
-                  <img src={user.avatar_url} alt="" className="h-16 w-16 rounded-full border border-slate-700 object-cover" />
+                  <img src={user.avatar_url} alt="" className="h-16 w-16 rounded-full border border-gray-200 object-cover" />
                 ) : (
-                  <div className="h-16 w-16 rounded-full bg-slate-900 border border-slate-750 flex items-center justify-center font-bold text-white uppercase text-lg">
+                  <div className="h-16 w-16 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-900 uppercase text-lg">
                     {user.full_name[0]}
                   </div>
                 )}
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h2 className="text-xl font-bold text-white">{user.full_name}</h2>
+                    <h2 className="text-xl font-bold text-gray-900">{user.full_name}</h2>
                     <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/20 uppercase">Verification Badge</span>
                   </div>
-                  <p className="text-xs text-slate-400 capitalize mt-1">{activeRole} • Member Since July 2026</p>
+                  <p className="text-xs text-gray-500 capitalize mt-1">{activeRole} • Member Since July 2026</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-850">
-                  <span className="text-slate-450 block text-[10px] uppercase font-bold tracking-wider mb-1">Reputation Score</span>
+                <div className="bg-white/80 p-4 rounded-xl border border-gray-100">
+                  <span className="text-gray-400 block text-[10px] uppercase font-bold tracking-wider mb-1">Reputation Score</span>
                   <span className="text-lg font-black text-emerald-400">{calculateTrustScore(user, true)}% Trust</span>
                 </div>
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-850">
+                <div className="bg-white/80 p-4 rounded-xl border border-gray-100">
                   <span className="text-slate-455 block text-[10px] uppercase font-bold tracking-wider mb-1">Completed Orders</span>
-                  <span className="text-lg font-black text-white">{user.trades_completed} Trades</span>
+                  <span className="text-lg font-black text-gray-900">{user.trades_completed} Trades</span>
                 </div>
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-850 col-span-2">
+                <div className="bg-white/80 p-4 rounded-xl border border-gray-100 col-span-2">
                   <span className="text-slate-455 block text-[10px] uppercase font-bold tracking-wider mb-1">Wallet Connected Address</span>
-                  <span className="font-mono text-white break-all block mt-1">{wallet?.address || 'None'}</span>
+                  <span className="font-mono text-gray-900 break-all block mt-1">{wallet?.address || 'None'}</span>
                 </div>
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-850 col-span-2">
+                <div className="bg-white/80 p-4 rounded-xl border border-gray-100 col-span-2">
                   <span className="text-slate-455 block text-[10px] uppercase font-bold tracking-wider mb-1">Ratings Summary</span>
-                  <span className="text-slate-200 mt-1 block font-sans">🟢 Cardano Blockchain Identity Verified • 4.9 Average Stars</span>
+                  <span className="text-gray-700 mt-1 block font-sans">🟢 Cardano Blockchain Identity Verified • 4.9 Average Stars</span>
                 </div>
               </div>
             </motion.div>
@@ -558,52 +570,52 @@ export const Dashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                      <h1 className="text-2xl font-bold tracking-tight text-white">Farmer Sales Hub</h1>
-                      <p className="text-xs text-slate-400 mt-0.5">Manage crop inventory lists published directly on the ledger</p>
+                      <h1 className="text-2xl font-bold tracking-tight text-gray-900">Farmer Sales Hub</h1>
+                      <p className="text-xs text-gray-500 mt-0.5">Manage crop inventory lists published directly on the ledger</p>
                     </div>
                     <button
                       onClick={() => setShowListingModal(true)}
-                      className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-xs font-bold text-white hover:opacity-95 transition"
+                      className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-xs font-bold text-gray-900 hover:opacity-95 transition"
                     >
                       <Plus className="h-4 w-4" />
                       <span>Sell New Produce</span>
                     </button>
                   </div>
 
-                  <div className="border-b border-slate-900 pb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center space-x-2">
                       <Tractor className="h-4.5 w-4.5 text-emerald-450 text-emerald-450 text-emerald-400" />
                       <span>Active Crop Listings</span>
                     </h2>
-                    <span className="rounded bg-slate-900 border border-slate-805 px-2 py-0.5 text-[10px] text-slate-400">
+                    <span className="rounded bg-white border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">
                       {products.filter(p => p.farmer_id === user?.id).length} Products
                     </span>
                   </div>
 
                   {products.filter(p => p.farmer_id === user?.id).length === 0 ? (
-                    <div className="glass-card rounded-2xl p-12 text-center text-slate-500 text-xs">
+                    <div className="glass-card rounded-2xl p-12 text-center text-gray-400 text-xs">
                       No crops listed. Click "Sell New Produce" to publish on ledger.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       {products.filter(p => p.farmer_id === user?.id).map(prod => (
-                        <div key={prod.id} className="glass-card rounded-xl overflow-hidden flex flex-col justify-between border-slate-850 hover:border-slate-800 transition">
+                        <div key={prod.id} className="glass-card rounded-xl overflow-hidden flex flex-col justify-between border-gray-100 hover:border-gray-200 transition">
                           {prod.image_url && (
                             <img src={prod.image_url} alt={prod.title} className="h-36 w-full object-cover" />
                           )}
                           <div className="p-4 space-y-3">
                             <div>
                               <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-400 border border-emerald-500/20">{prod.category}</span>
-                              <h3 className="text-sm font-bold text-white mt-1.5 line-clamp-1">{prod.title}</h3>
-                              <p className="text-[10px] text-slate-400 mt-0.5">{prod.grade}</p>
+                              <h3 className="text-sm font-bold text-gray-900 mt-1.5 line-clamp-1">{prod.title}</h3>
+                              <p className="text-[10px] text-gray-500 mt-0.5">{prod.grade}</p>
                             </div>
-                            <div className="flex items-center justify-between border-t border-slate-900 pt-3">
+                            <div className="flex items-center justify-between border-t border-gray-100 pt-3">
                               <div>
-                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">Price per unit</p>
-                                <p className="text-sm font-extrabold text-white mt-1">₹{prod.price_per_unit}/{prod.unit_type}</p>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">Price per unit</p>
+                                <p className="text-sm font-extrabold text-gray-900 mt-1">₹{prod.price_per_unit}/{prod.unit_type}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">Stock</p>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">Stock</p>
                                 <p className="text-sm font-semibold text-slate-350 mt-1">{prod.quantity_available} {prod.unit_type}</p>
                               </div>
                             </div>
@@ -617,18 +629,18 @@ export const Dashboard: React.FC = () => {
 
               {(!activeTab || activeTab === 'negotiations') && (
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center space-x-2">
                       <MessageSquare className="h-4.5 w-4.5 text-teal-400" />
                       <span>Sales Negotiations</span>
                     </h2>
-                    <span className="rounded bg-slate-900 border border-slate-805 px-2 py-0.5 text-[10px] text-slate-400">
+                    <span className="rounded bg-white border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">
                       {offers.filter(o => o.status === 'pending' || o.status === 'countered').length} Active
                     </span>
                   </div>
 
                   {offers.filter(o => o.status === 'pending' || o.status === 'countered').length === 0 ? (
-                    <div className="glass-card rounded-2xl p-6 text-center text-slate-500 text-xs">
+                    <div className="glass-card rounded-2xl p-6 text-center text-gray-400 text-xs">
                       No active sales negotiations.
                     </div>
                   ) : (
@@ -637,24 +649,24 @@ export const Dashboard: React.FC = () => {
                         <div 
                           key={offer.id} 
                           onClick={() => setActiveChatOffer(offer)}
-                          className="glass-card rounded-xl p-4 border-slate-850 hover:border-emerald-500/20 cursor-pointer space-y-3 transition"
+                          className="glass-card rounded-xl p-4 border-gray-100 hover:border-emerald-500/20 cursor-pointer space-y-3 transition"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="text-xs font-bold text-white line-clamp-1">{offer.product?.title}</h3>
-                              <p className="text-[10px] text-slate-400 mt-0.5">Bidder: {offer.buyer?.full_name}</p>
+                              <h3 className="text-xs font-bold text-gray-900 line-clamp-1">{offer.product?.title}</h3>
+                              <p className="text-[10px] text-gray-500 mt-0.5">Bidder: {offer.buyer?.full_name}</p>
                             </div>
-                            <span className="text-[10px] font-bold text-slate-400">Trust {calculateTrustScore(offer.buyer || {}, true)}%</span>
+                            <span className="text-[10px] font-bold text-gray-500">Trust {calculateTrustScore(offer.buyer || {}, true)}%</span>
                           </div>
                           
-                          <div className="flex justify-between bg-slate-900 px-3 py-2 rounded-lg border border-slate-850 text-xs">
+                          <div className="flex justify-between bg-white px-3 py-2 rounded-lg border border-gray-100 text-xs">
                             <div>
-                              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Bid Price</p>
-                              <p className="font-extrabold text-white mt-0.5">₹{offer.offer_price}/kg</p>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Bid Price</p>
+                              <p className="font-extrabold text-gray-900 mt-0.5">₹{offer.offer_price}/kg</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Qty Requested</p>
-                              <p className="font-semibold text-slate-300 mt-0.5">{offer.quantity} kg</p>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Qty Requested</p>
+                              <p className="font-semibold text-gray-600 mt-0.5">{offer.quantity} kg</p>
                             </div>
                           </div>
 
@@ -671,15 +683,15 @@ export const Dashboard: React.FC = () => {
 
               {(!activeTab || activeTab === 'orders') && (
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center space-x-2">
                       <Ship className="h-4.5 w-4.5 text-orange-400" />
                       <span>Escrow Deliveries</span>
                     </h2>
                   </div>
 
                   {orders.length === 0 ? (
-                    <div className="glass-card rounded-2xl p-6 text-center text-slate-500 text-xs">
+                    <div className="glass-card rounded-2xl p-6 text-center text-gray-400 text-xs">
                       No active smart contract delivery escrows.
                     </div>
                   ) : (
@@ -707,20 +719,20 @@ export const Dashboard: React.FC = () => {
               
               {(!activeTab || activeTab === 'products') && (
                 <div className="space-y-6">
-                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between border-b border-slate-850 pb-4">
+                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between border-b border-gray-100 pb-4">
                     <div>
-                      <h1 className="text-2xl font-bold text-white">Direct Crop Marketplace</h1>
-                      <p className="text-xs text-slate-400 mt-0.5">Discover, negotiate, and purchase verified crops directly from agricultural producers</p>
+                      <h1 className="text-2xl font-bold text-gray-900">Direct Crop Marketplace</h1>
+                      <p className="text-xs text-gray-500 mt-0.5">Discover, negotiate, and purchase verified crops directly from agricultural producers</p>
                     </div>
                     
-                    <div className="flex items-center space-x-2 w-full md:w-80 rounded-xl border border-slate-805 bg-slate-900/60 px-3.5 py-2 focus-within:border-emerald-500/50 transition">
-                      <Search className="h-4.5 w-4.5 text-slate-400" />
+                    <div className="flex items-center space-x-2 w-full md:w-80 rounded-xl border border-gray-200 bg-white/80 px-3.5 py-2 focus-within:border-emerald-500/50 transition">
+                      <Search className="h-4.5 w-4.5 text-gray-500" />
                       <input
                         type="text"
                         placeholder="Search crops or regions..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none"
+                        className="w-full bg-transparent text-xs text-gray-900 placeholder-slate-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -733,7 +745,7 @@ export const Dashboard: React.FC = () => {
                         className={`rounded-xl px-4 py-2 text-xs font-bold transition-all border ${
                           selectedCategory === cat
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 glow-emerald'
-                            : 'border-slate-805 bg-slate-900/40 text-slate-400 hover:text-white'
+                            : 'border-gray-200 bg-white/60 text-gray-500 hover:text-gray-900'
                         }`}
                       >
                         {cat}
@@ -742,7 +754,7 @@ export const Dashboard: React.FC = () => {
                   </div>
 
                   {filteredProducts.length === 0 ? (
-                    <div className="glass-card rounded-2xl p-12 text-center text-slate-500 text-xs">
+                    <div className="glass-card rounded-2xl p-12 text-center text-gray-400 text-xs">
                       No crops found matching your search.
                     </div>
                   ) : (
@@ -750,7 +762,7 @@ export const Dashboard: React.FC = () => {
                       {filteredProducts.map(prod => (
                         <div 
                           key={prod.id} 
-                          className="glass-card rounded-2xl overflow-hidden flex flex-col justify-between border-slate-850 hover:border-emerald-500/30 transition-all duration-300 shadow-lg"
+                          className="glass-card rounded-2xl overflow-hidden flex flex-col justify-between border-gray-100 hover:border-emerald-500/30 transition-all duration-300 shadow-lg"
                         >
                           {prod.image_url && (
                             <img src={prod.image_url} alt={prod.title} className="h-40 w-full object-cover" />
@@ -760,26 +772,26 @@ export const Dashboard: React.FC = () => {
                             <div className="flex justify-between items-start">
                               <div>
                                 <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-400 border border-emerald-500/20">{prod.category}</span>
-                                <h3 className="text-sm font-bold text-white mt-1.5 line-clamp-1">{prod.title}</h3>
+                                <h3 className="text-sm font-bold text-gray-900 mt-1.5 line-clamp-1">{prod.title}</h3>
                               </div>
                               <div className="text-right">
                                 <span className="text-[9px] font-bold text-emerald-400 block leading-none">Trust</span>
-                                <span className="text-xs font-extrabold text-white">{calculateTrustScore(prod.farmer || {}, true)}%</span>
+                                <span className="text-xs font-extrabold text-gray-900">{calculateTrustScore(prod.farmer || {}, true)}%</span>
                               </div>
                             </div>
 
-                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{prod.description}</p>
+                            <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{prod.description}</p>
                             
-                            <div className="flex items-center space-x-1.5 text-[10px] text-slate-400">
-                              <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                            <div className="flex items-center space-x-1.5 text-[10px] text-gray-500">
+                              <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                               <span>Punjab Farms • Farmer: {prod.farmer?.full_name || 'Ram Singh'}</span>
                             </div>
 
                             {/* List Price vs AI Suggestion */}
-                            <div className="grid grid-cols-2 gap-2 border-t border-slate-900 pt-3">
+                            <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
                               <div>
-                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">List Price</p>
-                                <p className="text-sm font-extrabold text-white mt-1">₹{prod.price_per_unit}/kg</p>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">List Price</p>
+                                <p className="text-sm font-extrabold text-gray-900 mt-1">₹{prod.price_per_unit}/kg</p>
                               </div>
                               <div className="text-right">
                                 <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest leading-none">AI Suggestion</p>
@@ -787,8 +799,8 @@ export const Dashboard: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between border-t border-slate-900 pt-3 text-[10px]">
-                              <span className="text-slate-500">Available Stock:</span>
+                            <div className="flex items-center justify-between border-t border-gray-100 pt-3 text-[10px]">
+                              <span className="text-gray-400">Available Stock:</span>
                               <span className="font-semibold text-slate-350">{prod.quantity_available} kg</span>
                             </div>
 
@@ -800,7 +812,7 @@ export const Dashboard: React.FC = () => {
                                   setOfferQuantity(100);
                                   setShowNegotiateDrawer(true);
                                 }}
-                                className="w-full flex items-center justify-center space-x-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-white transition"
+                                className="w-full flex items-center justify-center space-x-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-gray-900 transition"
                               >
                                 <Coins className="h-3.5 w-3.5" />
                                 <span>Buy / Negotiate</span>
@@ -816,15 +828,15 @@ export const Dashboard: React.FC = () => {
 
               {(!activeTab || activeTab === 'negotiations') && (
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-3">
-                    <h2 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <div className="border-b border-gray-100 pb-3">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center space-x-2">
                       <MessageSquare className="h-4.5 w-4.5 text-teal-400" />
                       <span>Outgoing Bids & Negotiations</span>
                     </h2>
                   </div>
 
                   {offers.filter(o => o.buyer_id === user?.id).length === 0 ? (
-                    <div className="glass-card rounded-2xl p-6 text-center text-slate-500 text-xs">
+                    <div className="glass-card rounded-2xl p-6 text-center text-gray-400 text-xs">
                       No active negotiation bids.
                     </div>
                   ) : (
@@ -833,31 +845,31 @@ export const Dashboard: React.FC = () => {
                         <div 
                           key={offer.id} 
                           onClick={() => setActiveChatOffer(offer)}
-                          className="glass-card rounded-xl p-4 border-slate-850 hover:border-emerald-500/20 cursor-pointer space-y-3 transition"
+                          className="glass-card rounded-xl p-4 border-gray-100 hover:border-emerald-500/20 cursor-pointer space-y-3 transition"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="text-xs font-bold text-white line-clamp-1">{offer.product?.title}</h3>
-                              <p className="text-[10px] text-slate-400 mt-0.5">Farmer: {offer.product?.farmer?.full_name}</p>
+                              <h3 className="text-xs font-bold text-gray-900 line-clamp-1">{offer.product?.title}</h3>
+                              <p className="text-[10px] text-gray-500 mt-0.5">Farmer: {offer.product?.farmer?.full_name}</p>
                             </div>
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase border ${
                               offer.status === 'accepted'
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                 : offer.status === 'countered'
                                 ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 animate-pulse-ring'
-                                : 'bg-slate-900 text-slate-400 border-slate-800'
+                                : 'bg-white text-gray-500 border-gray-200'
                             }`}>
                               {offer.status}
                             </span>
                           </div>
 
-                          <div className="flex justify-between bg-slate-900 px-3 py-2 rounded-lg border border-slate-850 text-xs">
+                          <div className="flex justify-between bg-white px-3 py-2 rounded-lg border border-gray-100 text-xs">
                             <div>
-                              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">My Bid</p>
-                              <p className="font-extrabold text-white mt-0.5">₹{offer.offer_price}/kg</p>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">My Bid</p>
+                              <p className="font-extrabold text-gray-900 mt-0.5">₹{offer.offer_price}/kg</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Qty</p>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Qty</p>
                               <p className="font-semibold text-slate-350 mt-0.5">{offer.quantity} kg</p>
                             </div>
                           </div>
@@ -875,15 +887,15 @@ export const Dashboard: React.FC = () => {
 
               {(!activeTab || activeTab === 'orders') && (
                 <div className="space-y-4">
-                  <div className="border-b border-slate-900 pb-3">
-                    <h2 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <div className="border-b border-gray-100 pb-3">
+                    <h2 className="text-sm font-bold text-gray-900 flex items-center space-x-2">
                       <ShieldCheck className="h-4.5 w-4.5 text-orange-400" />
                       <span>Active Purchases Escrows</span>
                     </h2>
                   </div>
 
                   {orders.filter(o => o.buyer_id === user?.id).length === 0 ? (
-                    <div className="glass-card rounded-2xl p-6 text-center text-slate-500 text-xs">
+                    <div className="glass-card rounded-2xl p-6 text-center text-gray-400 text-xs">
                       No active purchases.
                     </div>
                   ) : (
@@ -923,16 +935,16 @@ export const Dashboard: React.FC = () => {
 
           {/* -------------------- SELL CROP MODAL (FARMER) -------------------- */}
           {showListingModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm p-4">
               <div className="glass-card w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-6">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <h2 className="font-display text-lg font-bold text-white flex items-center space-x-2">
+                <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                  <h2 className="font-display text-lg font-bold text-gray-900 flex items-center space-x-2">
                     <Plus className="h-5 w-5 text-emerald-400" />
                     <span>List Crop for Sale</span>
                   </h2>
                   <button 
                     onClick={() => { setShowListingModal(false); setAiPriceDetails(null); }}
-                    className="text-slate-400 hover:text-white"
+                    className="text-gray-500 hover:text-gray-900"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -941,22 +953,22 @@ export const Dashboard: React.FC = () => {
                 <form onSubmit={handlePublishListing} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Crop Name</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Crop Name</label>
                       <input
                         type="text"
                         placeholder="e.g. Organic Tomatoes"
                         value={listTitle}
                         onChange={(e) => setListTitle(e.target.value)}
-                        className="w-full rounded-lg border border-slate-805 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 placeholder-slate-500 focus:outline-none"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Category</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Category</label>
                       <select
                         value={listCategory}
                         onChange={(e) => setListCategory(e.target.value)}
-                        className="w-full rounded-lg border border-slate-805 bg-slate-900 px-3 py-2 text-xs text-white focus:outline-none"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:outline-none"
                       >
                         <option value="Vegetables">Vegetables</option>
                         <option value="Grains">Grains</option>
@@ -967,11 +979,11 @@ export const Dashboard: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Quality Grade</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quality Grade</label>
                       <select
                         value={listGrade}
                         onChange={(e) => setListGrade(e.target.value)}
-                        className="w-full rounded-lg border border-slate-805 bg-slate-900 px-3 py-2 text-xs text-white focus:outline-none"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:outline-none"
                       >
                         <option value="Grade A (Premium)">Grade A (Premium)</option>
                         <option value="Grade B (Standard)">Grade B (Standard)</option>
@@ -979,20 +991,20 @@ export const Dashboard: React.FC = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Quantity (kg)</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quantity (kg)</label>
                       <input
                         type="number"
                         placeholder="e.g. 500"
                         value={listQty}
                         onChange={(e) => setListQty(e.target.value)}
-                        className="w-full rounded-lg border border-slate-805 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 placeholder-slate-500 focus:outline-none"
                         required
                       />
                     </div>
                   </div>
 
                   {/* Price suggestion tool */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3.5">
+                  <div className="rounded-xl border border-gray-200 bg-white/70 p-4 space-y-3.5">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-1.5 text-xs text-emerald-400 font-bold">
                         <Sparkles className="h-4.5 w-4.5 text-emerald-500 animate-pulse" />
@@ -1008,39 +1020,39 @@ export const Dashboard: React.FC = () => {
                     </div>
 
                     {aiPriceDetails && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[10px] border-t border-slate-850 pt-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[10px] border-t border-gray-100 pt-3">
                         <div>
-                          <span className="text-slate-400 block">AI Recommended Price</span>
-                          <span className="font-bold text-white text-xs">₹{aiPriceDetails.suggestedPrice}/kg</span>
+                          <span className="text-gray-500 block">AI Recommended Price</span>
+                          <span className="font-bold text-gray-900 text-xs">₹{aiPriceDetails.suggestedPrice}/kg</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block">Demand Outlook</span>
+                          <span className="text-gray-500 block">Demand Outlook</span>
                           <span className="font-semibold text-emerald-400 uppercase">{aiPriceDetails.demand}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block">Market Trend</span>
-                          <span className="font-semibold text-white capitalize">{aiPriceDetails.trend === 'up' ? '↗ Increasing' : '→ Stable'}</span>
+                          <span className="text-gray-500 block">Market Trend</span>
+                          <span className="font-semibold text-gray-900 capitalize">{aiPriceDetails.trend === 'up' ? '↗ Increasing' : '→ Stable'}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block">AI Confidence</span>
+                          <span className="text-gray-500 block">AI Confidence</span>
                           <span className="font-bold text-emerald-400">{aiPriceDetails.confidence}%</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 block">Best Selling Window</span>
-                          <span className="font-semibold text-slate-300">{aiPriceDetails.sellingTime}</span>
+                          <span className="text-gray-500 block">Best Selling Window</span>
+                          <span className="font-semibold text-gray-600">{aiPriceDetails.sellingTime}</span>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center space-x-3 border-t border-slate-850/50 pt-3">
+                    <div className="flex items-center space-x-3 border-t border-gray-100/50 pt-3">
                       <div className="flex-1">
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Set Price (₹/kg)</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Set Price (₹/kg)</label>
                         <input
                           type="number"
                           placeholder="Price per unit"
                           value={listPrice}
                           onChange={(e) => setListPrice(e.target.value)}
-                          className="w-full rounded-lg border border-slate-805 bg-slate-900 px-3 py-2 text-xs text-white focus:outline-none"
+                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:outline-none"
                           required
                         />
                       </div>
@@ -1049,7 +1061,7 @@ export const Dashboard: React.FC = () => {
 
                   <button
                     type="submit"
-                    className="w-full flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-xs font-bold text-white hover:opacity-95"
+                    className="w-full flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-xs font-bold text-gray-900 hover:opacity-95"
                   >
                     <span>Publish Listing on Ledger</span>
                   </button>
@@ -1060,47 +1072,47 @@ export const Dashboard: React.FC = () => {
 
           {/* -------------------- BUYER NEGOTIATION / BUY DRAWER -------------------- */}
           {showNegotiateDrawer && selectedProduct && (
-            <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/80 backdrop-blur-sm p-0">
+            <div className="fixed inset-0 z-50 flex items-center justify-end bg-gray-50/80 backdrop-blur-sm p-0">
               <div className="glass-card w-full max-w-md h-full rounded-l-2xl p-6 shadow-2xl flex flex-col justify-between border-y-0 border-r-0">
                 <div>
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
-                    <h2 className="font-display text-lg font-bold text-white flex items-center space-x-2">
+                  <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
+                    <h2 className="font-display text-lg font-bold text-gray-900 flex items-center space-x-2">
                       <Coins className="h-5 w-5 text-emerald-400" />
                       <span>Start Crop Negotiation</span>
                     </h2>
-                    <button onClick={() => setShowNegotiateDrawer(false)} className="text-slate-400 hover:text-white">
+                    <button onClick={() => setShowNegotiateDrawer(false)} className="text-gray-500 hover:text-gray-900">
                       <X className="h-5 w-5" />
                     </button>
                   </div>
 
                   <div className="space-y-6">
                     
-                    <div className="flex space-x-3.5 bg-slate-900 p-3 rounded-xl border border-slate-850">
+                    <div className="flex space-x-3.5 bg-white p-3 rounded-xl border border-gray-100">
                       {selectedProduct.image_url && (
                         <img src={selectedProduct.image_url} alt="" className="h-16 w-16 rounded-lg object-cover shrink-0" />
                       )}
                       <div>
-                        <h3 className="text-sm font-bold text-white">{selectedProduct.title}</h3>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-sans">Farmer: {selectedProduct.farmer?.full_name || 'Ram Singh'} ({calculateTrustScore(selectedProduct.farmer || {}, true)}% Trust)</p>
+                        <h3 className="text-sm font-bold text-gray-900">{selectedProduct.title}</h3>
+                        <p className="text-[10px] text-gray-500 mt-0.5 font-sans">Farmer: {selectedProduct.farmer?.full_name || 'Ram Singh'} ({calculateTrustScore(selectedProduct.farmer || {}, true)}% Trust)</p>
                         <p className="text-xs font-extrabold text-emerald-400 mt-1">₹{selectedProduct.price_per_unit}/kg</p>
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800/80 bg-emerald-500/5 p-4 space-y-2">
+                    <div className="rounded-xl border border-gray-200/80 bg-emerald-500/5 p-4 space-y-2">
                       <div className="flex items-center space-x-1 text-xs text-emerald-400 font-bold font-sans">
                         <Sparkles className="h-4 w-4 text-emerald-500 animate-pulse" />
                         <span>AI Trade Assistant</span>
                       </div>
-                      <p className="text-[11px] text-slate-300">
+                      <p className="text-[11px] text-gray-600">
                         The suggested market price is stable at ₹{selectedProduct.price_per_unit}/kg. Offers within 10% (₹{Math.round(selectedProduct.price_per_unit * 0.9)} - ₹{selectedProduct.price_per_unit}) are highly likely to be accepted.
                       </p>
                     </div>
 
                     <form onSubmit={handleMakeOffer} className="space-y-4">
                       <div>
-                        <label className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        <label className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
                           <span>Bid Price (₹/kg)</span>
-                          <span className="text-white font-extrabold">₹{offerPrice}/kg</span>
+                          <span className="text-gray-900 font-extrabold">₹{offerPrice}/kg</span>
                         </label>
                         <input
                           type="range"
@@ -1108,14 +1120,14 @@ export const Dashboard: React.FC = () => {
                           max={selectedProduct.price_per_unit}
                           value={offerPrice}
                           onChange={(e) => setOfferPrice(Number(e.target.value))}
-                          className="w-full accent-emerald-500 bg-slate-800 rounded-lg appearance-none h-1.5"
+                          className="w-full accent-emerald-500 bg-gray-100 rounded-lg appearance-none h-1.5"
                         />
                       </div>
 
                       <div>
-                        <label className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        <label className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
                           <span>Quantity Required (kg)</span>
-                          <span className="text-white font-extrabold">{offerQuantity} kg</span>
+                          <span className="text-gray-900 font-extrabold">{offerQuantity} kg</span>
                         </label>
                         <input
                           type="range"
@@ -1124,18 +1136,18 @@ export const Dashboard: React.FC = () => {
                           step="50"
                           value={offerQuantity}
                           onChange={(e) => setOfferQuantity(Number(e.target.value))}
-                          className="w-full accent-emerald-500 bg-slate-800 rounded-lg appearance-none h-1.5"
+                          className="w-full accent-emerald-500 bg-gray-100 rounded-lg appearance-none h-1.5"
                         />
                       </div>
 
-                      <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-850 flex justify-between items-center text-xs">
-                        <span className="text-slate-400">Escrow Total:</span>
+                      <div className="bg-white/80 p-3.5 rounded-xl border border-gray-100 flex justify-between items-center text-xs">
+                        <span className="text-gray-500">Escrow Total:</span>
                         <span className="text-base font-extrabold text-emerald-400">₹{(offerPrice * offerQuantity).toLocaleString()}</span>
                       </div>
 
                       <button
                         type="submit"
-                        className="w-full flex items-center justify-center space-x-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold text-white transition"
+                        className="w-full flex items-center justify-center space-x-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold text-gray-900 transition"
                       >
                         <span>Submit Offer to Farmer</span>
                         <ArrowRight className="h-4.5 w-4.5" />
@@ -1145,7 +1157,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="text-[10px] text-slate-500 text-center font-mono">
+                <div className="text-[10px] text-gray-400 text-center font-mono">
                   All transactions are secured by Cardano Preview Smart Contracts.
                 </div>
               </div>
@@ -1159,51 +1171,51 @@ export const Dashboard: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50/85 backdrop-blur-sm p-4"
               >
                 <motion.div 
                   initial={{ scale: 0.95, y: 10 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.95, y: 10 }}
-                  className="w-full max-w-lg rounded-2xl border border-slate-805 bg-slate-900 shadow-2xl flex flex-col h-[550px] overflow-hidden"
+                  className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl flex flex-col h-[550px] overflow-hidden"
                 >
-                  <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center shrink-0">
+                  <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <div className="flex items-center space-x-3">
                       <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
                         <MessageSquare className="h-5 w-5" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white">{activeChatOffer.product?.title}</h3>
-                        <p className="text-[10px] text-slate-400 font-sans">Negotiation channel with {activeRole === 'farmer' ? activeChatOffer.buyer?.full_name : activeChatOffer.product?.farmer?.full_name}</p>
+                        <h3 className="text-sm font-bold text-gray-900">{activeChatOffer.product?.title}</h3>
+                        <p className="text-[10px] text-gray-500 font-sans">Negotiation channel with {activeRole === 'farmer' ? activeChatOffer.buyer?.full_name : activeChatOffer.product?.farmer?.full_name}</p>
                       </div>
                     </div>
-                    <button onClick={() => setActiveChatOffer(null)} className="text-slate-400 hover:text-white">
+                    <button onClick={() => setActiveChatOffer(null)} className="text-gray-500 hover:text-gray-900">
                       <X className="h-5 w-5" />
                     </button>
                   </div>
 
-                  <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-950/30 font-mono text-[11px]">
+                  <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50/30 font-mono text-[11px]">
                     <div className="flex flex-col items-end">
-                      <div className="max-w-[75%] rounded-2xl rounded-tr-none bg-slate-800 px-4 py-2.5 text-xs text-white font-sans">
-                        <p className="font-semibold text-[10px] text-slate-450 mb-0.5">Priya Patel (Buyer)</p>
+                      <div className="max-w-[75%] rounded-2xl rounded-tr-none bg-gray-100 px-4 py-2.5 text-xs text-gray-900 font-sans">
+                        <p className="font-semibold text-[10px] text-gray-400 mb-0.5">Priya Patel (Buyer)</p>
                         I am placing an initial bid of <span className="font-bold text-emerald-400">₹{activeChatOffer.offer_price}/kg</span> for {activeChatOffer.quantity} kg of your crop.
                       </div>
-                      <span className="text-[9px] text-slate-500 mt-1">Sent • Cardano Address Signed</span>
+                      <span className="text-[9px] text-gray-400 mt-1">Sent • Cardano Address Signed</span>
                     </div>
 
                     {activeChatOffer.status === 'countered' && (
                       <div className="flex flex-col items-start">
-                        <div className="max-w-[75%] rounded-2xl rounded-tl-none bg-emerald-600/15 border border-emerald-500/30 px-4 py-2.5 text-xs text-white font-sans">
+                        <div className="max-w-[75%] rounded-2xl rounded-tl-none bg-emerald-600/15 border border-emerald-500/30 px-4 py-2.5 text-xs text-gray-900 font-sans">
                           <p className="font-semibold text-[10px] text-emerald-400 mb-0.5">Ram Singh (Farmer)</p>
                           Thank you for the bid! I'd like to counter-offer at <span className="font-bold text-emerald-400">₹{activeChatOffer.counter_price}/kg</span>. Let me know if that works.
                         </div>
-                        <span className="text-[9px] text-slate-500 mt-1">Received • Signed with Ledger Key</span>
+                        <span className="text-[9px] text-gray-400 mt-1">Received • Signed with Ledger Key</span>
                       </div>
                     )}
 
                     {activeChatOffer.status === 'accepted' && (
                       <div className="flex flex-col items-start">
-                        <div className="max-w-[75%] rounded-2xl rounded-tl-none bg-emerald-600/10 border border-emerald-500/30 px-4 py-2.5 text-xs text-white font-sans">
+                        <div className="max-w-[75%] rounded-2xl rounded-tl-none bg-emerald-600/10 border border-emerald-500/30 px-4 py-2.5 text-xs text-gray-900 font-sans">
                           <p className="font-semibold text-[10px] text-emerald-450 mb-0.5">System Ledger</p>
                           Offer ACCEPTED at <span className="font-bold text-emerald-400">₹{activeChatOffer.offer_price}/kg</span>. Plutus escrow contract compilation triggered.
                         </div>
@@ -1213,16 +1225,16 @@ export const Dashboard: React.FC = () => {
 
                     {activeChatOffer.status === 'declined' && (
                       <div className="flex flex-col items-start">
-                        <div className="max-w-[75%] rounded-2xl rounded-tl-none bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-xs text-slate-300 font-sans">
+                        <div className="max-w-[75%] rounded-2xl rounded-tl-none bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-xs text-gray-600 font-sans">
                           <p className="font-semibold text-[10px] text-red-400 mb-0.5">Ram Singh (Farmer)</p>
                           I have declined this bid. The prices are too low for this grade harvest.
                         </div>
-                        <span className="text-[9px] text-slate-550 mt-1">Declined</span>
+                        <span className="text-[9px] text-gray-400 mt-1">Declined</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="p-4 bg-slate-950 border-t border-slate-800 shrink-0 space-y-3">
+                  <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0 space-y-3">
                     {activeChatOffer.status === 'pending' && activeRole === 'farmer' && (
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
@@ -1231,11 +1243,11 @@ export const Dashboard: React.FC = () => {
                             placeholder="Counter Price (₹/kg)"
                             value={counterPriceInput}
                             onChange={(e) => setCounterPriceInput(e.target.value)}
-                            className="flex-1 rounded-lg border border-slate-805 bg-slate-900 px-3 py-2 text-xs text-white focus:outline-none"
+                            className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:outline-none"
                           />
                           <button
                             onClick={() => handleCounterOffer(activeChatOffer)}
-                            className="rounded-xl bg-orange-600 hover:bg-orange-500 px-4 py-2 text-xs font-bold text-white"
+                            className="rounded-xl bg-orange-600 hover:bg-orange-500 px-4 py-2 text-xs font-bold text-gray-900"
                           >
                             Counter
                           </button>
@@ -1243,13 +1255,13 @@ export const Dashboard: React.FC = () => {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleAcceptOffer(activeChatOffer)}
-                            className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-white"
+                            className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-gray-900"
                           >
                             Accept Offer
                           </button>
                           <button
                             onClick={() => handleDeclineOffer(activeChatOffer)}
-                            className="flex-1 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-bold text-slate-350"
+                            className="flex-1 rounded-xl bg-gray-100 hover:bg-slate-700 py-2.5 text-xs font-bold text-slate-350"
                           >
                             Decline Offer
                           </button>
@@ -1261,13 +1273,13 @@ export const Dashboard: React.FC = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleAcceptCounterOffer(activeChatOffer)}
-                          className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-white"
+                          className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-gray-900"
                         >
                           Accept Counter (₹{activeChatOffer.counter_price}/kg)
                         </button>
                         <button
                           onClick={() => handleDeclineOffer(activeChatOffer)}
-                          className="flex-1 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-bold text-slate-350"
+                          className="flex-1 rounded-xl bg-gray-100 hover:bg-slate-700 py-2.5 text-xs font-bold text-slate-350"
                         >
                           Reject Counter
                         </button>
@@ -1275,7 +1287,7 @@ export const Dashboard: React.FC = () => {
                     )}
 
                     {activeChatOffer.status === 'accepted' && (
-                      <div className="text-center text-[10px] text-slate-500">
+                      <div className="text-center text-[10px] text-gray-400">
                         Negotiations completed. Proceed to active escrows page to lock Cardano funds.
                       </div>
                     )}
@@ -1287,48 +1299,48 @@ export const Dashboard: React.FC = () => {
 
           {/* -------------------- CARDANO REPUTATION NFT MODAL -------------------- */}
           {showNftModal && mintedNft && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm p-4">
               <div className="glass-card w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center space-y-6 relative overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full blur-3xl opacity-20 animate-pulse-ring" />
                 <div className="flex justify-end">
-                  <button onClick={() => setShowNftModal(false)} className="text-slate-400 hover:text-white">
+                  <button onClick={() => setShowNftModal(false)} className="text-gray-500 hover:text-gray-900">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
                 <div className="space-y-4 relative z-10">
                   <div className="mx-auto h-40 w-40 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-blue-600 p-0.5 shadow-2xl rotate-6 hover:rotate-0 transition duration-500">
-                    <div className="h-full w-full bg-slate-950 rounded-2xl p-3 flex flex-col justify-between items-center text-[10px]">
-                      <div className="flex justify-between w-full text-slate-500 font-mono">
+                    <div className="h-full w-full bg-gray-50 rounded-2xl p-3 flex flex-col justify-between items-center text-[10px]">
+                      <div className="flex justify-between w-full text-gray-400 font-mono">
                         <span>AGRITRUST</span>
                         <span>NFT PROOF</span>
                       </div>
                       
                       <div className="flex flex-col items-center">
                         <Award className="h-12 w-12 text-emerald-400 animate-bounce" />
-                        <p className="font-display font-extrabold text-[11px] text-white mt-1">Reputation Certificate</p>
-                        <p className="text-[9px] text-slate-500 mt-0.5 font-mono">Cardano Preview Network</p>
+                        <p className="font-display font-extrabold text-[11px] text-gray-900 mt-1">Reputation Certificate</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5 font-mono">Cardano Preview Network</p>
                       </div>
 
-                      <div className="w-full text-left font-mono text-[8px] text-slate-400 border-t border-slate-900 pt-1.5 truncate">
+                      <div className="w-full text-left font-mono text-[8px] text-gray-500 border-t border-gray-100 pt-1.5 truncate">
                         HASH: {mintedNft.txHash.slice(0, 16)}...
                       </div>
                     </div>
                   </div>
 
-                  <h3 className="font-display text-xl font-extrabold text-white mt-6">Reputation NFT Minted!</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="font-display text-xl font-extrabold text-gray-900 mt-6">Reputation NFT Minted!</h3>
+                  <p className="text-xs text-gray-500">
                     A trade completion certificate token has been cryptographically minted on the Cardano ledger.
                   </p>
                   
-                  <div className="bg-slate-900 rounded-lg p-2.5 text-[10px] text-slate-500 font-mono text-left space-y-1">
-                    <p><span className="text-slate-400">Asset ID:</span> {mintedNft.nftId}</p>
-                    <p><span className="text-slate-400">Policy:</span> policy_reputation_v1_cardano...</p>
+                  <div className="bg-white rounded-lg p-2.5 text-[10px] text-gray-400 font-mono text-left space-y-1">
+                    <p><span className="text-gray-500">Asset ID:</span> {mintedNft.nftId}</p>
+                    <p><span className="text-gray-500">Policy:</span> policy_reputation_v1_cardano...</p>
                   </div>
 
                   <button
                     onClick={() => setShowNftModal(false)}
-                    className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-550 transition"
+                    className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-gray-900 hover:bg-emerald-550 transition"
                   >
                     Claim Certificate
                   </button>
@@ -1339,10 +1351,10 @@ export const Dashboard: React.FC = () => {
 
           {/* -------------------- STAR RATING DIALOG -------------------- */}
           {showReviewModal && reviewOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm p-4">
               <div className="glass-card w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-5">
-                <h3 className="font-display text-base font-bold text-white">Rate Farmer Direct Trade</h3>
-                <p className="text-xs text-slate-450 font-sans">
+                <h3 className="font-display text-base font-bold text-gray-900">Rate Farmer Direct Trade</h3>
+                <p className="text-xs text-gray-400 font-sans">
                   Submit rating stars to automatically recalculate the Farmer's reputation trust score on the ledger.
                 </p>
 
@@ -1369,12 +1381,12 @@ export const Dashboard: React.FC = () => {
                   rows={3}
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
-                  className="w-full rounded-lg border border-slate-805 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 placeholder-slate-500 focus:outline-none"
                 />
 
                 <button
                   onClick={handleReviewSubmit}
-                  className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition"
+                  className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-gray-900 hover:bg-emerald-500 transition"
                 >
                   Submit Trade Verification Review
                 </button>
@@ -1384,11 +1396,11 @@ export const Dashboard: React.FC = () => {
 
           {/* -------------------- QR CODE VERIFICATION DIALOG -------------------- */}
           {showQrModal && qrCodeOrder && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm p-4">
               <div className="glass-card w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center space-y-6">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <span className="font-display text-sm font-bold text-white">Trade Verification QR</span>
-                  <button onClick={() => { setShowQrModal(false); setQrCodeOrder(null); }} className="text-slate-400 hover:text-white">
+                <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                  <span className="font-display text-sm font-bold text-gray-900">Trade Verification QR</span>
+                  <button onClick={() => { setShowQrModal(false); setQrCodeOrder(null); }} className="text-gray-500 hover:text-gray-900">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
@@ -1404,12 +1416,12 @@ export const Dashboard: React.FC = () => {
                     />
                   </div>
 
-                  <div className="space-y-1.5 text-xs text-slate-400 font-sans">
-                    <p className="font-bold text-white text-sm">Blockchain Certified Origin</p>
+                  <div className="space-y-1.5 text-xs text-gray-500 font-sans">
+                    <p className="font-bold text-gray-900 text-sm">Blockchain Certified Origin</p>
                     <p>Scan this QR code to verify trade authenticity, smart contract state, and wallets on the Cardano Preview Net.</p>
                   </div>
 
-                  <div className="rounded-lg bg-slate-900 p-2.5 text-[9px] text-slate-500 font-mono text-left truncate">
+                  <div className="rounded-lg bg-white p-2.5 text-[9px] text-gray-400 font-mono text-left truncate">
                     VERIFY URL: {window.location.origin}/#/verify/{qrCodeOrder.id}
                   </div>
 

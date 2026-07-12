@@ -40,7 +40,7 @@ export const Landing: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-950 text-white min-h-[calc(100vh-64px)] relative overflow-hidden font-display">
+    <div className="bg-gray-50 text-gray-900 min-h-[calc(100vh-64px)] relative overflow-hidden font-display">
       
       {/* Background blobs */}
       <div className="absolute top-12 left-10 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-3xl" />
@@ -73,7 +73,7 @@ export const Landing: React.FC = () => {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mx-auto max-w-2xl text-slate-400 text-base sm:text-lg leading-relaxed"
+          className="mx-auto max-w-2xl text-gray-500 text-base sm:text-lg leading-relaxed"
         >
           Direct farmer-to-buyer trading secured by AI-assisted pricing and Cardano smart contracts.
         </motion.p>
@@ -86,7 +86,7 @@ export const Landing: React.FC = () => {
         >
           <button
             onClick={handleGetStarted}
-            className="w-full sm:w-auto flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-emerald-950/20 hover:opacity-95 active:scale-95 transition-all"
+            className="w-full sm:w-auto flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-4 text-base font-bold text-gray-900 shadow-xl shadow-emerald-950/20 hover:opacity-95 active:scale-95 transition-all"
           >
             <span>Get Started</span>
             <ArrowRight className="h-5 w-5" />
@@ -94,7 +94,7 @@ export const Landing: React.FC = () => {
           
           <button
             onClick={handleGetStarted}
-            className="w-full sm:w-auto flex items-center justify-center space-x-2 rounded-xl border border-slate-805 bg-slate-900/60 px-8 py-4 text-base font-semibold text-slate-350 hover:bg-slate-850 hover:text-white transition"
+            className="w-full sm:w-auto flex items-center justify-center space-x-2 rounded-xl border border-gray-200 bg-white/80 px-8 py-4 text-base font-semibold text-slate-350 hover:bg-gray-50 hover:text-gray-900 transition"
           >
             <span>Explore Marketplace</span>
           </button>
@@ -106,39 +106,39 @@ export const Landing: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           
           <div className="glass-card rounded-2xl p-4 border-l-2 border-emerald-500/80">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block">Verified Farmers</span>
-            <div className="text-xl sm:text-2xl font-black text-white mt-1">1</div>
-            <p className="text-[9px] text-slate-500 mt-0.5 font-mono">Ram Singh</p>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 block">Verified Farmers</span>
+            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-1">1</div>
+            <p className="text-[9px] text-gray-400 mt-0.5 font-mono">Ram Singh</p>
           </div>
 
           <div className="glass-card rounded-2xl p-4 border-l-2 border-teal-500/80">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block">Verified Buyers</span>
-            <div className="text-xl sm:text-2xl font-black text-white mt-1">1</div>
-            <p className="text-[9px] text-slate-500 mt-0.5 font-mono">Priya Patel</p>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 block">Verified Buyers</span>
+            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-1">1</div>
+            <p className="text-[9px] text-gray-400 mt-0.5 font-mono">Priya Patel</p>
           </div>
 
           <div className="glass-card rounded-2xl p-4 border-l-2 border-blue-500/80">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block">Crops Listed</span>
-            <div className="text-xl sm:text-2xl font-black text-white mt-1">5</div>
-            <p className="text-[9px] text-slate-500 mt-0.5 font-mono">Active stocks</p>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 block">Crops Listed</span>
+            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-1">5</div>
+            <p className="text-[9px] text-gray-400 mt-0.5 font-mono">Active stocks</p>
           </div>
 
           <div className="glass-card rounded-2xl p-4 border-l-2 border-purple-500/80">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block">Trades Mapped</span>
-            <div className="text-xl sm:text-2xl font-black text-white mt-1">2</div>
-            <p className="text-[9px] text-slate-500 mt-0.5 font-mono">P2P negotiations</p>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 block">Trades Mapped</span>
+            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-1">2</div>
+            <p className="text-[9px] text-gray-400 mt-0.5 font-mono">P2P negotiations</p>
           </div>
 
           <div className="glass-card rounded-2xl p-4 border-l-2 border-amber-500/80">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block">Active Escrow</span>
-            <div className="text-xl sm:text-2xl font-black text-white mt-1">1</div>
-            <p className="text-[9px] text-slate-500 mt-0.5 font-mono">Cardano contract</p>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 block">Active Escrow</span>
+            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-1">1</div>
+            <p className="text-[9px] text-gray-400 mt-0.5 font-mono">Cardano contract</p>
           </div>
 
           <div className="glass-card rounded-2xl p-4 border-l-2 border-pink-500/80">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block">Ledger Blocks</span>
-            <div className="text-xl sm:text-2xl font-black text-white mt-1">6</div>
-            <p className="text-[9px] text-slate-500 mt-0.5 font-mono">Mined logs</p>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 block">Ledger Blocks</span>
+            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-1">6</div>
+            <p className="text-[9px] text-gray-400 mt-0.5 font-mono">Mined logs</p>
           </div>
 
         </div>
@@ -150,37 +150,37 @@ export const Landing: React.FC = () => {
         {/* Left Side: Top Verified Farmers */}
         <div className="space-y-6">
           <div>
-            <h2 className="font-display text-2xl font-black text-white">Top Verified Farmers</h2>
-            <p className="text-sm text-slate-400 mt-1">Farmers with consistent delivery logs and highest ratings</p>
+            <h2 className="font-display text-2xl font-black text-gray-900">Top Verified Farmers</h2>
+            <p className="text-sm text-gray-500 mt-1">Farmers with consistent delivery logs and highest ratings</p>
           </div>
 
           <div className="space-y-4">
             {topFarmers.length === 0 ? (
-              <div className="glass-card rounded-2xl p-8 text-center text-slate-550 text-sm">
+              <div className="glass-card rounded-2xl p-8 text-center text-gray-400 text-sm">
                 Syncing verified farmers...
               </div>
             ) : (
               topFarmers.map(farmer => (
                 <div 
                   key={farmer.id}
-                  className="glass-card rounded-2xl p-4 flex items-center justify-between border-slate-805 hover:border-emerald-500/30 transition-all duration-300"
+                  className="glass-card rounded-2xl p-4 flex items-center justify-between border-gray-200 hover:border-emerald-500/30 transition-all duration-300"
                 >
                   <div className="flex items-center space-x-3.5">
                     {farmer.avatar_url ? (
-                      <img src={farmer.avatar_url} alt="" className="h-12 w-12 rounded-full border border-slate-700 object-cover" />
+                      <img src={farmer.avatar_url} alt="" className="h-12 w-12 rounded-full border border-gray-200 object-cover" />
                     ) : (
-                      <div className="h-12 w-12 rounded-full bg-slate-900 border border-slate-750 flex items-center justify-center font-bold text-white uppercase">
+                      <div className="h-12 w-12 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-900 uppercase">
                         {farmer.full_name[0]}
                       </div>
                     )}
                     <div>
                       <div className="flex items-center space-x-2">
-                        <h3 className="text-sm font-bold text-white leading-none">{farmer.full_name}</h3>
+                        <h3 className="text-sm font-bold text-gray-900 leading-none">{farmer.full_name}</h3>
                         <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400 border border-emerald-500/20">Verified</span>
                       </div>
-                      <div className="flex items-center space-x-1.5 text-slate-400 text-xs mt-1.5">
+                      <div className="flex items-center space-x-1.5 text-gray-500 text-xs mt-1.5">
                         <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                        <span className="font-semibold text-slate-300">4.9</span>
+                        <span className="font-semibold text-gray-600">4.9</span>
                         <span>•</span>
                         <span>{farmer.trades_completed} Trades Completed</span>
                       </div>
@@ -188,7 +188,7 @@ export const Landing: React.FC = () => {
                   </div>
                   
                   <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Trust Rating</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Trust Rating</span>
                     <span className="text-lg font-black text-emerald-400">{farmer.trust_score}%</span>
                   </div>
                 </div>
@@ -201,11 +201,11 @@ export const Landing: React.FC = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-2xl font-black text-white flex items-center space-x-2">
+              <h2 className="font-display text-2xl font-black text-gray-900 flex items-center space-x-2">
                 <Activity className="h-5.5 w-5.5 text-emerald-500 animate-pulse" />
                 <span>Live Trust Ledger Stream</span>
               </h2>
-              <p className="text-sm text-slate-400 mt-1">Real-time blocks mined on Cardano preview testnet</p>
+              <p className="text-sm text-gray-500 mt-1">Real-time blocks mined on Cardano preview testnet</p>
             </div>
             <Link to="/ledger" className="text-xs font-semibold text-emerald-400 flex items-center space-x-1 hover:text-emerald-300">
               <span>View Trust Ledger</span>
@@ -215,22 +215,22 @@ export const Landing: React.FC = () => {
 
           <div className="space-y-4">
             {latestBlocks.length === 0 ? (
-              <div className="glass-card rounded-2xl p-8 text-center text-slate-550 text-sm">
+              <div className="glass-card rounded-2xl p-8 text-center text-gray-400 text-sm">
                 Syncing blocks...
               </div>
             ) : (
               latestBlocks.map(block => (
                 <div 
                   key={block.id}
-                  className="glass-card rounded-2xl p-4 flex flex-col justify-between border-slate-805 text-xs hover:border-blue-500/30 transition-all duration-300"
+                  className="glass-card rounded-2xl p-4 flex flex-col justify-between border-gray-200 text-xs hover:border-blue-500/30 transition-all duration-300"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-850 pb-2 font-mono">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2 font-mono">
                     <span className="text-emerald-400 font-bold">BLOCK #{block.block_number}</span>
-                    <span className="text-slate-500 text-[10px]">{block.tx_hash.slice(0, 16)}...</span>
+                    <span className="text-gray-400 text-[10px]">{block.tx_hash.slice(0, 16)}...</span>
                   </div>
                   <div className="flex items-center justify-between pt-2">
                     <div>
-                      <p className="font-bold text-white text-[13px]">{block.action.replace(/_/g, ' ')}</p>
+                      <p className="font-bold text-gray-900 text-[13px]">{block.action.replace(/_/g, ' ')}</p>
                       <p className="text-[10px] text-slate-455 mt-0.5">Mined: {new Date(block.created_at).toLocaleTimeString()}</p>
                     </div>
                     <span className="inline-flex items-center space-x-1 rounded bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-400 border border-blue-500/20">

@@ -63,19 +63,19 @@ export const TrustLedger: React.FC = () => {
     >
       
       {/* Header and Integrity Action */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-850 pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-6">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white flex items-center space-x-2.5">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 flex items-center space-x-2.5">
             <Database className="h-8 w-8 text-emerald-500 shrink-0" />
             <span>Trust Ledger</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">Audit block logs mined on the Cardano Preview Testnet chain</p>
+          <p className="text-sm text-gray-500 mt-1">Audit block logs mined on the Cardano Preview Testnet chain</p>
         </div>
 
         <button
           onClick={handleVerifyChain}
           disabled={verifying || blocks.length === 0}
-          className="flex items-center space-x-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 text-xs font-bold transition shadow-lg disabled:opacity-50"
+          className="flex items-center space-x-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-gray-900 px-4 py-2.5 text-xs font-bold transition shadow-lg disabled:opacity-50"
         >
           {verifying ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -114,16 +114,16 @@ export const TrustLedger: React.FC = () => {
 
       {/* Timeline view */}
       {loading && blocks.length === 0 ? (
-        <div className="flex justify-center py-12 text-slate-400">
+        <div className="flex justify-center py-12 text-gray-500">
           <RefreshCw className="h-6 w-6 animate-spin text-emerald-500 mr-2" />
           <span>Syncing block headers...</span>
         </div>
       ) : blocks.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 text-center text-slate-555 text-slate-400 text-sm">
+        <div className="glass-card rounded-2xl p-12 text-center text-slate-555 text-gray-500 text-sm">
           No ledger blocks mined yet. Syncing with Cardano Network...
         </div>
       ) : (
-        <div className="relative border-l-2 border-slate-800 ml-4 pl-8 space-y-8 py-2">
+        <div className="relative border-l-2 border-gray-200 ml-4 pl-8 space-y-8 py-2">
           
           {/* Active mining indicator node at top */}
           <div className="absolute -left-[9px] -top-1.5 h-4.5 w-4.5 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center animate-pulse">
@@ -141,38 +141,38 @@ export const TrustLedger: React.FC = () => {
               >
                 
                 {/* Node icon dot */}
-                <div className="absolute -left-[41px] top-1.5 h-6 w-6 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] text-emerald-400 font-bold shrink-0">
+                <div className="absolute -left-[41px] top-1.5 h-6 w-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[10px] text-emerald-400 font-bold shrink-0">
                   {idx === 0 ? <Cpu className="h-3.5 w-3.5 text-blue-400 animate-spin" /> : '✓'}
                 </div>
 
-                <div className="glass-card rounded-2xl p-5 border-slate-850 hover:border-slate-800 transition">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-850 pb-3 mb-3 text-[10px]">
+                <div className="glass-card rounded-2xl p-5 border-gray-100 hover:border-gray-200 transition">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-100 pb-3 mb-3 text-[10px]">
                     <div className="flex items-center space-x-2">
                       <span className="font-mono text-emerald-400 font-extrabold text-xs">BLOCK #{block.block_number}</span>
                       <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-blue-400 border border-blue-500/20">Cardano Preview</span>
                     </div>
-                    <span className="font-sans text-slate-400">Mined: {new Date(block.created_at).toLocaleDateString()} {new Date(block.created_at).toLocaleTimeString()}</span>
+                    <span className="font-sans text-gray-500">Mined: {new Date(block.created_at).toLocaleDateString()} {new Date(block.created_at).toLocaleTimeString()}</span>
                   </div>
 
                   <div className="space-y-3 font-mono text-[11px]">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                      <span className="text-slate-400 uppercase tracking-widest font-bold">Action Mapped:</span>
-                      <span className="text-white font-extrabold font-sans text-xs">{block.action.replace(/_/g, ' ')}</span>
+                      <span className="text-gray-500 uppercase tracking-widest font-bold">Action Mapped:</span>
+                      <span className="text-gray-900 font-extrabold font-sans text-xs">{block.action.replace(/_/g, ' ')}</span>
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <span className="text-slate-400 uppercase tracking-widest font-bold">Transaction Hash:</span>
-                      <span className="text-slate-300 break-all select-all">{block.tx_hash}</span>
+                      <span className="text-gray-500 uppercase tracking-widest font-bold">Transaction Hash:</span>
+                      <span className="text-gray-600 break-all select-all">{block.tx_hash}</span>
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <span className="text-slate-400 uppercase tracking-widest font-bold">Parent Hash (prev_hash):</span>
-                      <span className="text-slate-500 break-all">{block.prev_hash}</span>
+                      <span className="text-gray-500 uppercase tracking-widest font-bold">Parent Hash (prev_hash):</span>
+                      <span className="text-gray-400 break-all">{block.prev_hash}</span>
                     </div>
 
-                    <div className="border-t border-slate-850/60 pt-3">
-                      <span className="text-slate-400 uppercase tracking-widest font-bold block mb-1">Payload Metadata:</span>
-                      <pre className="bg-slate-950 p-3 rounded-lg border border-slate-900 text-[10px] text-slate-300 overflow-x-auto leading-relaxed">
+                    <div className="border-t border-gray-100/60 pt-3">
+                      <span className="text-gray-500 uppercase tracking-widest font-bold block mb-1">Payload Metadata:</span>
+                      <pre className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-[10px] text-gray-600 overflow-x-auto leading-relaxed">
                         {JSON.stringify(block.data, null, 2)}
                       </pre>
                     </div>

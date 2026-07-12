@@ -1,193 +1,242 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Profile, Wallet } from '../types';
-import { dbService } from '../services/dbService';
-import { demoService } from '../services/demoService';
+import { supabase } from '../services/supabaseClient';
 
+// ─── Demo account credentials ─────────────────────────────────────────────────
+const DEMO_FARMER = { email: 'farmer@agritrust.demo', password: 'AgriTrust2024!', name: 'Ram Singh', role: 'farmer' as const };
+const DEMO_BUYER  = { email: 'buyer@agritrust.demo',  password: 'AgriTrust2024!', name: 'Priya Patel (Organic Foods Ltd)', role: 'buyer'  as const };
+
+// ─── Context type ─────────────────────────────────────────────────────────────
 interface AuthContextType {
-  user: Profile | null;
-  wallet: Wallet | null;
-  activeRole: 'farmer' | 'buyer' | null;
-  loading: boolean;
-  signUp: (fullName: string, role: 'farmer' | 'buyer') => Promise<Profile>;
-  login: (userId: string) => Promise<Profile>;
-  logout: () => void;
-  switchRole: (role: 'farmer' | 'buyer') => void;
-  refreshWallet: () => Promise<void>;
-  switchUser: (userId: string) => Promise<void>;
+  user:         Profile | null;
+  wallet:       Wallet  | null;
+  activeRole:   'farmer' | 'buyer' | null;
+  loading:      boolean;
+  signUp:       (fullName: string, role: 'farmer' | 'buyer', email: string, password: string) => Promise<Profile>;
+  login:        (email: string, password: string) => Promise<Profile>;
+  logout:       () => Promise<void>;
+  switchRole:   (role: 'farmer' | 'buyer') => void;
+  refreshWallet:() => Promise<void>;
+  switchUser:   (demoRole: 'farmer' | 'buyer') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fetchProfile = async (uid: string): Promise<Profile | null> => {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).single();
+  if (error || !data) return null;
+  return data as Profile;
+};
+
+const fetchWallet = async (uid: string): Promise<Wallet | null> => {
+  const { data, error } = await supabase.from('wallets').select('*').eq('user_id', uid).single();
+  if (error || !data) return null;
+  return data as Wallet;
+};
+
+// ─── Provider ────────────────────────────────────────────────────────────────
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<Profile | null>(null);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [user,       setUser]       = useState<Profile | null>(null);
+  const [wallet,     setWallet]     = useState<Wallet  | null>(null);
   const [activeRole, setActiveRole] = useState<'farmer' | 'buyer' | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading,    setLoading]    = useState(true);
 
-  // Initialize Auth State (automatically boots with Ram Singh or Priya Patel if offline / sandbox)
-  useEffect(() => {
-    const initAuth = async () => {
-      setLoading(true);
-      try {
-        // Ensure default data is seeded once in background if empty
-        if (!localStorage.getItem('agritrust_profiles')) {
-          demoService.seedMarketplace();
-        }
-
-        const storedUserId = localStorage.getItem('agritrust_current_user_id');
-        const storedRole = localStorage.getItem('agritrust_active_role');
-        
-        if (storedUserId) {
-          const profile = await dbService.getProfile(storedUserId);
-          if (profile) {
-            setUser(profile);
-            const userWallet = await dbService.getWallet(profile.id);
-            setWallet(userWallet);
-            setActiveRole((storedRole as 'farmer' | 'buyer') || profile.role);
-          }
-        } else {
-          // Default to Ram Singh (Farmer) for first boot experience if none set
-          const profiles = await dbService.getProfiles();
-          const defaultUser = profiles.find(p => p.id === 'farmer-ram-singh-id') || profiles[0];
-          if (defaultUser) {
-            setUser(defaultUser);
-            const userWallet = await dbService.getWallet(defaultUser.id);
-            setWallet(userWallet);
-            setActiveRole(defaultUser.role as 'farmer' | 'buyer');
-            localStorage.setItem('agritrust_current_user_id', defaultUser.id);
-            localStorage.setItem('agritrust_active_role', defaultUser.role);
-          }
-        }
-      } catch (err) {
-        console.error('Error initializing auth:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
+  // Load profile + wallet for a given auth uid
+  const loadSession = useCallback(async (uid: string) => {
+    // Retry up to 3 times – trigger may still be running
+    let profile: Profile | null = null;
+    for (let i = 0; i < 3; i++) {
+      profile = await fetchProfile(uid);
+      if (profile) break;
+      await new Promise(r => setTimeout(r, 800));
+    }
+    if (!profile) return;
+    const w = await fetchWallet(uid);
+    setUser(profile);
+    setWallet(w);
+    setActiveRole(profile.role as 'farmer' | 'buyer');
   }, []);
 
-  const refreshWallet = async () => {
-    if (user) {
-      const userWallet = await dbService.getWallet(user.id);
-      setWallet(userWallet);
-    }
-  };
+  // ── Boot: restore existing Supabase session ───────────────────────────────
+  useEffect(() => {
+    let mounted = true;
 
-  const signUp = async (fullName: string, role: 'farmer' | 'buyer'): Promise<Profile> => {
-    setLoading(true);
-    try {
-      const newUserId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
-      const newProfile: Profile = {
-        id: newUserId,
-        role,
-        full_name: fullName,
-        trust_score: 100,
-        trades_completed: 0,
-        is_verified: true,
-        created_at: new Date().toISOString()
-      };
-
-      const newWallet: Wallet = {
-        id: `wallet-${newUserId}`,
-        user_id: newUserId,
-        address: `addr_test1v${Math.random().toString(36).substring(2, 12)}`,
-        balance: 10000.0,
-        locked_balance: 0.0,
-        network: 'preview_testnet',
-        created_at: new Date().toISOString()
-      };
-
-      const createdProfile = await dbService.createProfile(newProfile);
-      await dbService.createWallet(newWallet);
-      
-      setUser(createdProfile);
-      setWallet(newWallet);
-      setActiveRole(role);
-      localStorage.setItem('agritrust_current_user_id', createdProfile.id);
-      localStorage.setItem('agritrust_active_role', role);
-      
-      return createdProfile;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = async (userId: string): Promise<Profile> => {
-    setLoading(true);
-    try {
-      const profile = await dbService.getProfile(userId);
-      if (!profile) {
-        throw new Error('User profile not found');
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && mounted) {
+        await loadSession(session.user.id);
       }
-      const userWallet = await dbService.getWallet(profile.id);
-      setUser(profile);
-      setWallet(userWallet);
-      setActiveRole(profile.role as 'farmer' | 'buyer');
-      localStorage.setItem('agritrust_current_user_id', profile.id);
-      localStorage.setItem('agritrust_active_role', profile.role);
+      if (mounted) setLoading(false);
+    };
+
+    init();
+
+    // Live session listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      if (session?.user) {
+        setLoading(true);
+        await loadSession(session.user.id);
+        setLoading(false);
+      } else {
+        setUser(null);
+        setWallet(null);
+        setActiveRole(null);
+      }
+    });
+
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, [loadSession]);
+
+  // ── refreshWallet ─────────────────────────────────────────────────────────
+  const refreshWallet = async () => {
+    if (!user) return;
+    const w = await fetchWallet(user.id);
+    setWallet(w);
+  };
+
+  // ── signUp ────────────────────────────────────────────────────────────────
+  const signUp = async (
+    fullName: string,
+    role: 'farmer' | 'buyer',
+    email: string,
+    password: string
+  ): Promise<Profile> => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName, role } }
+      });
+      if (error) throw new Error(error.message);
+      if (!data.user) throw new Error('Signup failed: no user returned.');
+
+      // Wait for trigger to create profile
+      let profile: Profile | null = null;
+      for (let i = 0; i < 5; i++) {
+        profile = await fetchProfile(data.user.id);
+        if (profile) break;
+        await new Promise(r => setTimeout(r, 800));
+      }
+      if (!profile) throw new Error('Profile creation timed out. Please refresh.');
       return profile;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
+  // ── login ─────────────────────────────────────────────────────────────────
+  const login = async (email: string, password: string): Promise<Profile> => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(error.message);
+      if (!data.user) throw new Error('Login failed.');
+      const profile = await fetchProfile(data.user.id);
+      if (!profile) throw new Error('Profile not found.');
+      return profile;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── logout ────────────────────────────────────────────────────────────────
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setWallet(null);
     setActiveRole(null);
-    localStorage.removeItem('agritrust_current_user_id');
-    localStorage.removeItem('agritrust_active_role');
   };
 
-  const switchRole = (role: 'farmer' | 'buyer') => {
-    setActiveRole(role);
-    localStorage.setItem('agritrust_active_role', role);
-  };
+  // ── switchRole (UI only) ──────────────────────────────────────────────────
+  const switchRole = (role: 'farmer' | 'buyer') => setActiveRole(role);
 
-  const switchUser = async (userId: string) => {
+  // ── switchUser: Quick-Access demo login ───────────────────────────────────
+  const switchUser = async (demoRole: 'farmer' | 'buyer') => {
     setLoading(true);
     try {
-      const profile = await dbService.getProfile(userId);
-      if (profile) {
-        setUser(profile);
-        const userWallet = await dbService.getWallet(profile.id);
-        setWallet(userWallet);
-        setActiveRole(profile.role as 'farmer' | 'buyer');
-        localStorage.setItem('agritrust_current_user_id', profile.id);
-        localStorage.setItem('agritrust_active_role', profile.role);
+      const creds = demoRole === 'farmer' ? DEMO_FARMER : DEMO_BUYER;
+
+      // Try to sign in
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+        email: creds.email,
+        password: creds.password
+      });
+
+      if (!signInErr && signInData.user) {
+        // Account exists – session is set, onAuthStateChange handles the rest
+        return;
       }
+
+      // First time: create the demo account
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: creds.email,
+        password: creds.password,
+        options: { data: { full_name: creds.name, role: creds.role } }
+      });
+      if (signUpErr) throw new Error(signUpErr.message);
+      if (!signUpData.user) throw new Error('Demo account creation failed.');
+
+      // Wait for trigger
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Patch demo profile with realistic trust score / verification
+      const demoMeta = demoRole === 'farmer'
+        ? { trust_score: 97, trades_completed: 25, is_verified: true }
+        : { trust_score: 99, trades_completed: 42, is_verified: true };
+
+      await supabase.from('profiles').update(demoMeta).eq('id', signUpData.user.id);
+
+      // Seed 2 demo products for the farmer
+      if (demoRole === 'farmer') {
+        await supabase.from('products').insert([
+          {
+            farmer_id: signUpData.user.id,
+            title: 'Organic Vine-Ripened Tomatoes',
+            description: 'Freshly harvested organic tomatoes, rich red, Grade A, pesticide-free. Punjab plains.',
+            category: 'Vegetables',
+            grade: 'Grade A (Premium)',
+            price_per_unit: 28,
+            unit_type: 'kg',
+            quantity_available: 850,
+            image_url: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&q=80'
+          },
+          {
+            farmer_id: signUpData.user.id,
+            title: 'Golden Sharbati Wheat Grains',
+            description: 'Premium wheat grains with rich golden sheen and maximum gluten strength.',
+            category: 'Grains',
+            grade: 'Grade A+',
+            price_per_unit: 34,
+            unit_type: 'kg',
+            quantity_available: 2400,
+            image_url: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=600&q=80'
+          }
+        ]);
+      }
+
+      // Sign in after creation
+      await supabase.auth.signInWithPassword({ email: creds.email, password: creds.password });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        wallet,
-        activeRole,
-        loading,
-        signUp,
-        login,
-        logout,
-        switchRole,
-        refreshWallet,
-        switchUser
-      }}
-    >
+    <AuthContext.Provider value={{
+      user, wallet, activeRole, loading,
+      signUp, login, logout, switchRole, refreshWallet, switchUser
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };
 export default useAuth;

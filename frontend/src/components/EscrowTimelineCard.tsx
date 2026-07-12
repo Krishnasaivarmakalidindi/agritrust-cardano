@@ -33,14 +33,14 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
     <div className="glass-card rounded-2xl p-5 border-slate-855 space-y-5">
       
       {/* Header Info */}
-      <div className="flex justify-between items-start border-b border-slate-900 pb-3">
+      <div className="flex justify-between items-start border-b border-gray-100 pb-3">
         <div>
-          <span className="font-mono text-[9px] text-slate-500 uppercase tracking-widest">Escrow Contract Status</span>
-          <h4 className="text-sm font-bold text-white mt-0.5">{order.product?.title}</h4>
+          <span className="font-mono text-[9px] text-gray-400 uppercase tracking-widest">Escrow Contract Status</span>
+          <h4 className="text-sm font-bold text-gray-900 mt-0.5">{order.product?.title}</h4>
         </div>
         <div className="text-right">
           <span className="text-[10px] font-bold text-emerald-400 block">Total Escrow</span>
-          <span className="text-sm font-extrabold text-white">₳ {Math.round(order.total_amount * 0.05)} ADA</span>
+          <span className="text-sm font-extrabold text-gray-900">₳ {Math.round(order.total_amount * 0.05)} ADA</span>
         </div>
       </div>
 
@@ -58,7 +58,7 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
               {idx < STAGES.length - 1 && (
                 <div 
                   className={`absolute left-4 top-8 -bottom-4 w-[2px] transition ${
-                    idx < currentStageIndex ? 'bg-emerald-500/80' : 'bg-slate-850'
+                    idx < currentStageIndex ? 'bg-emerald-500/80' : 'bg-gray-50'
                   }`} 
                 />
               )}
@@ -70,7 +70,7 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
                     ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 glow-emerald' 
                     : isActive 
                     ? 'bg-orange-500/10 border-orange-500 text-orange-400 animate-pulse-ring' 
-                    : 'bg-slate-900 border-slate-800 text-slate-500'
+                    : 'bg-white border-gray-200 text-gray-400'
                 }`}
               >
                 {isCompleted ? (
@@ -84,7 +84,7 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
               <div className="min-w-0 flex-1 pt-0.5">
                 <div className="flex justify-between items-baseline">
                   <p className={`text-xs font-bold leading-none ${
-                    isCompleted ? 'text-slate-200' : isActive ? 'text-orange-400' : 'text-slate-500'
+                    isCompleted ? 'text-gray-700' : isActive ? 'text-orange-400' : 'text-gray-400'
                   }`}>
                     {stage.label}
                   </p>
@@ -94,7 +94,7 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1 leading-tight">{stage.desc}</p>
+                <p className="text-[10px] text-gray-400 mt-1 leading-tight">{stage.desc}</p>
               </div>
 
             </div>
@@ -103,14 +103,14 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
       </div>
 
       {/* Embedded Transaction info */}
-      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-850 text-[10px] text-slate-500 font-mono space-y-1.5">
+      <div className="bg-white/80 rounded-xl p-3 border border-gray-100 text-[10px] text-gray-400 font-mono space-y-1.5">
         <div className="flex justify-between">
           <span>Escrow Account:</span>
-          <span className="text-slate-400 truncate w-32 text-right">addr_test1z{order.id.replace(/[^0-9]/g, '').slice(0, 8)}escrow...</span>
+          <span className="text-gray-500 truncate w-32 text-right">addr_test1z{order.id.replace(/[^0-9]/g, '').slice(0, 8)}escrow...</span>
         </div>
         <div className="flex justify-between">
           <span>Cardano Network:</span>
-          <span className="text-slate-400">preview_testnet</span>
+          <span className="text-gray-500">preview_testnet</span>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
         {onVerify && (
           <button
             onClick={onVerify}
-            className="flex-1 flex items-center justify-center space-x-1 border border-slate-800 bg-slate-900 hover:bg-slate-850 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition"
+            className="flex-1 flex items-center justify-center space-x-1 border border-gray-200 bg-white hover:bg-gray-50 px-3.5 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:text-gray-900 transition"
           >
             <span>Verify QR</span>
           </button>
@@ -129,7 +129,7 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
           <button
             onClick={onAction}
             disabled={actionLoading}
-            className="flex-1 flex items-center justify-center space-x-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95 transition"
+            className="flex-1 flex items-center justify-center space-x-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-gray-900 hover:bg-emerald-600 active:scale-95 transition"
           >
             <span>{actionText}</span>
             <ArrowRight className="h-4 w-4" />

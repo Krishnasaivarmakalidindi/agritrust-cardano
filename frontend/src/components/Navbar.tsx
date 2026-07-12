@@ -1,68 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { dbService } from '../services/dbService';
-import { Profile, Notification } from '../types';
+import { supabase } from '../services/supabaseClient';
+import { Notification } from '../types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Bell, ChevronDown, Check, Users, Globe, Wallet as WalletIcon 
-} from 'lucide-react';
+import { Bell, ChevronDown, Globe, Wallet as WalletIcon, LogOut, ShieldCheck, User, Zap } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const { 
-    user, wallet, activeRole, 
-    switchRole, switchUser 
-  } = useAuth();
-  
-  const [allUsers, setAllUsers] = useState<Profile[]>([]);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const { user, wallet, activeRole, logout } = useAuth();
+
+  const [showUserDropdown,  setShowUserDropdown]  = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [syncTime, setSyncTime] = useState<string>('Just Now');
+  const [notifications,     setNotifications]     = useState<Notification[]>([]);
+  const [syncTime,          setSyncTime]           = useState('Live');
 
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const list = await dbService.getProfiles();
-      setAllUsers(list);
-    };
-    fetchUsers();
-  }, [user]);
-
-  // Notifications (Activity Center) listener
+  // Notifications + Realtime
   useEffect(() => {
     if (!user) return;
-    const fetchNotifications = async () => {
+    const fetchN = async () => {
       const list = await dbService.getNotifications(user.id);
       setNotifications(list);
     };
-    fetchNotifications();
-
-    const interval = setInterval(fetchNotifications, 5000);
-    return () => clearInterval(interval);
+    fetchN();
+    const ch = supabase
+      .channel(`notif-navbar-${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, fetchN)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
-  // Live Sync time simulator
   useEffect(() => {
-    const timer = setInterval(() => {
-      const rand = Math.random();
-      if (rand > 0.7) {
-        setSyncTime('Just Now');
-      } else if (rand > 0.4) {
-        setSyncTime('1s ago');
-      } else {
-        setSyncTime('3s ago');
-      }
-    }, 4000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => {
+      setSyncTime(['Live', 'Just now', '1s ago'][Math.floor(Math.random() * 3)]);
+    }, 5000);
+    return () => clearInterval(t);
   }, []);
-
-  const handleUserChange = async (userId: string) => {
-    await switchUser(userId);
-    setShowUserDropdown(false);
-    navigate('/dashboard');
-  };
 
   const handleMarkRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,115 +45,104 @@ export const Navbar: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
+  const handleLogout = async () => {
+    setShowUserDropdown(false);
+    await logout();
+    navigate('/onboarding');
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-900 bg-slate-950/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        
-        {/* Left: Brand Identity */}
-        <div className="flex items-center space-x-6">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="font-display text-lg font-black tracking-tight text-white uppercase">
-              Agri<span className="text-emerald-400">Trust</span>
-            </span>
-          </Link>
-        </div>
+    <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm">
+      <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
 
-        {/* Right Nav Menu items */}
-        <div className="flex items-center space-x-4">
-          
-          {/* Real Network Status Badge */}
-          <div className="hidden md:flex items-center space-x-2.5 rounded-xl border border-slate-805 bg-slate-900/40 px-3.5 py-1.5 text-[11px] font-semibold text-slate-300">
-            <Globe className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
-            <span>Cardano Preview Testnet</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-slate-500 font-mono">Sync: {syncTime}</span>
+        {/* Brand */}
+        <Link to={user ? '/dashboard' : '/'} className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500 shadow-sm">
+            <span className="text-white font-black text-sm tracking-tight">AT</span>
           </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-black text-sm tracking-tight text-gray-900">AgriTrust</span>
+            <span className="text-emerald-600 font-mono text-[9px] font-bold bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100">v1.0</span>
+          </div>
+        </Link>
 
-          {/* Connected Wallet Address & Balance */}
+        {/* Right */}
+        <div className="flex items-center gap-2">
+
+          {/* Network badge */}
+          {user && (
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <Globe className="h-3 w-3 text-emerald-600" />
+              <span className="text-[10px] font-semibold text-emerald-700">Preview Testnet</span>
+              <span className="text-[9px] text-emerald-500 font-mono">{syncTime}</span>
+            </div>
+          )}
+
+          {/* Wallet pill */}
           {wallet && (
-            <Link 
-              to="/wallet" 
-              className="flex items-center space-x-2.5 rounded-xl border border-slate-805 bg-slate-900/60 px-3 py-1.5 hover:border-emerald-500/30 hover:bg-slate-850 transition"
+            <Link
+              to="/wallet"
+              className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 shadow-sm hover:border-emerald-200 hover:shadow transition"
             >
-              <WalletIcon className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-              <span className="font-mono text-[10px] text-slate-400 hidden lg:inline">
-                {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
+              <WalletIcon className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              <span className="font-mono text-[10px] text-gray-500 hidden lg:inline">
+                {wallet.address.slice(0, 8)}…{wallet.address.slice(-4)}
               </span>
-              <span className="font-display text-xs font-bold text-emerald-400 shrink-0">
-                ₳ {wallet.balance.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ADA
+              <span className="font-bold text-xs text-emerald-600 shrink-0">
+                ₳ {Number(wallet.balance).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </span>
             </Link>
           )}
 
-          {/* Quick Profile switcher (Clean team/role toggler format) */}
-          {allUsers.length > 0 && (
+          {/* User menu */}
+          {user && (
             <div className="relative">
               <button
-                onClick={() => {
-                  setShowUserDropdown(!showUserDropdown);
-                  setShowNotifications(false);
-                }}
-                className="flex items-center space-x-2 rounded-xl border border-slate-805 bg-slate-900/50 px-3 py-1.5 text-xs text-slate-300 hover:text-white transition"
+                onClick={() => { setShowUserDropdown(v => !v); setShowNotifications(false); }}
+                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs shadow-sm hover:border-gray-300 transition"
               >
-                <Users className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="font-semibold hidden sm:inline">{user?.full_name} ({activeRole === 'farmer' ? 'Farmer' : 'Buyer'})</span>
-                <span className="font-semibold sm:hidden">{activeRole === 'farmer' ? 'Farmer' : 'Buyer'}</span>
-                <ChevronDown className="h-3 w-3" />
+                <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black text-white uppercase ${activeRole === 'farmer' ? 'bg-emerald-500' : 'bg-blue-500'}`}>
+                  {user.full_name[0]}
+                </div>
+                <span className="font-semibold text-gray-800 hidden sm:inline max-w-[100px] truncate">{user.full_name.split(' ')[0]}</span>
+                <span className={`hidden sm:inline text-[9px] font-bold px-1.5 py-0.5 rounded-full capitalize ${
+                  activeRole === 'farmer' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-blue-50 text-blue-700 border border-blue-100'
+                }`}>{activeRole}</span>
+                <ChevronDown className="h-3 w-3 text-gray-400" />
               </button>
 
               {showUserDropdown && (
-                <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl glow-emerald ring-1 ring-black/5">
-                  <div className="px-3 py-2 border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                    Switch Profile
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden z-50 animate-slide-up">
+                  <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-gray-100">
+                    <p className="text-xs font-bold text-gray-900 truncate">{user.full_name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full capitalize border ${
+                        activeRole === 'farmer' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'
+                      }`}>{activeRole}</span>
+                      {user.is_verified && (
+                        <span className="flex items-center gap-1 text-[9px] text-emerald-600 font-bold">
+                          <ShieldCheck className="h-3 w-3" />Verified
+                        </span>
+                      )}
+                      <span className="text-[9px] text-gray-400 ml-auto">⭐ {user.trust_score}%</span>
+                    </div>
                   </div>
-                  {allUsers.map((u) => (
-                    <button
-                      key={u.id}
-                      onClick={() => handleUserChange(u.id)}
-                      className={`flex w-full items-center justify-between rounded-lg p-2 text-left hover:bg-slate-900 transition ${
-                        user?.id === u.id ? 'bg-slate-900/60' : ''
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        {u.avatar_url ? (
-                          <img src={u.avatar_url} alt="" className="h-8 w-8 rounded-full border border-slate-700 object-cover" />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-slate-850 border border-slate-700 flex items-center justify-center text-xs font-bold text-white uppercase">
-                            {u.full_name[0]}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-xs font-semibold text-white leading-tight">{u.full_name}</p>
-                          <p className="text-[10px] text-slate-400 capitalize">{u.role} • Trust {u.trust_score}%</p>
-                        </div>
-                      </div>
-                      {user?.id === u.id && <Check className="h-4 w-4 text-emerald-400" />}
-                    </button>
-                  ))}
-                  
-                  {/* Quick role toggle */}
-                  <div className="border-t border-slate-850 mt-2 pt-2 flex space-x-1 justify-center">
-                    <button 
-                      onClick={() => { switchRole('farmer'); setShowUserDropdown(false); }}
-                      className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition ${
-                        activeRole === 'farmer' 
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Farmer View
-                    </button>
-                    <button 
-                      onClick={() => { switchRole('buyer'); setShowUserDropdown(false); }}
-                      className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition ${
-                        activeRole === 'buyer' 
-                          ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' 
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Buyer View
+                  <div className="p-1.5">
+                    <Link to="/dashboard?tab=profile" onClick={() => setShowUserDropdown(false)}
+                      className="flex items-center gap-2.5 w-full rounded-xl px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
+                      <User className="h-3.5 w-3.5 text-gray-400" />View Profile
+                    </Link>
+                    <Link to="/wallet" onClick={() => setShowUserDropdown(false)}
+                      className="flex items-center gap-2.5 w-full rounded-xl px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
+                      <WalletIcon className="h-3.5 w-3.5 text-gray-400" />Wallet
+                    </Link>
+                    <div className="my-1 border-t border-gray-100" />
+                    <button onClick={handleLogout}
+                      className="flex items-center gap-2.5 w-full rounded-xl px-3 py-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 transition">
+                      <LogOut className="h-3.5 w-3.5" />Sign Out
                     </button>
                   </div>
                 </div>
@@ -186,74 +150,61 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Activity Center */}
+          {/* Notifications */}
           {user && (
             <div className="relative">
               <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowUserDropdown(false);
-                }}
-                className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+                onClick={() => { setShowNotifications(v => !v); setShowUserDropdown(false); }}
+                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm text-gray-500 hover:text-gray-900 hover:border-gray-300 transition"
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white ring-2 ring-slate-950">
-                    {unreadCount}
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl glow-blue ring-1 ring-black/5">
-                  <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Activity Center</span>
-                    {unreadCount > 0 && (
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
-                        {unreadCount} New
-                      </span>
-                    )}
+                <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-gray-100 bg-white shadow-xl z-50 overflow-hidden animate-slide-up">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-3.5 w-3.5 text-emerald-500" />
+                      <p className="text-xs font-bold text-gray-900">Activity Feed</p>
+                    </div>
+                    <span className="text-[10px] text-gray-400">{unreadCount} unread</span>
                   </div>
-                  <div className="max-h-72 overflow-y-auto pt-1">
+                  <div className="max-h-80 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-500">
-                        No recent activity alerts.
+                      <div className="p-8 text-center">
+                        <Bell className="h-8 w-8 text-gray-200 mx-auto mb-2" />
+                        <p className="text-xs text-gray-400">No activity yet</p>
                       </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={`group flex items-start justify-between rounded-lg p-2.5 hover:bg-slate-900 transition ${
-                            !n.read ? 'bg-slate-900/40 border-l-2 border-emerald-500' : ''
-                          }`}
-                        >
-                          <div className="flex flex-col space-y-0.5">
-                            <span className="text-[11px] font-medium text-slate-300 pr-3">{n.message}</span>
-                            <span className="text-[9px] text-slate-500">
-                              {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          {!n.read && (
-                            <button
-                              onClick={(e) => handleMarkRead(n.id, e)}
-                              className="opacity-0 group-hover:opacity-100 flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:bg-emerald-500 hover:text-white transition"
-                              title="Mark read"
-                            >
-                              <Check className="h-2.5 w-2.5" />
-                            </button>
-                          )}
+                    ) : notifications.map(n => (
+                      <div key={n.id} onClick={e => handleMarkRead(n.id, e)}
+                        className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition border-b border-gray-50 last:border-0 ${!n.read ? 'bg-emerald-50/50' : ''}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-xs leading-snug ${!n.read ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>{n.message}</p>
+                          {!n.read && <div className="h-2 w-2 rounded-full bg-emerald-500 mt-0.5 shrink-0" />}
                         </div>
-                      ))
-                    )}
+                        <p className="text-[10px] text-gray-400 mt-1">{new Date(n.created_at).toLocaleTimeString()}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           )}
 
+          {!user && location.pathname !== '/onboarding' && (
+            <Link to="/onboarding"
+              className="rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-sm transition">
+              Sign In
+            </Link>
+          )}
         </div>
       </div>
-    </header>
+    </nav>
   );
 };
 export default Navbar;

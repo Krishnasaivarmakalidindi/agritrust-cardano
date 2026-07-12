@@ -52,7 +52,7 @@ export const Verify: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center text-slate-400">
+      <div className="flex h-96 items-center justify-center text-gray-500">
         Syncing verification logs from Cardano Preview Net...
       </div>
     );
@@ -61,7 +61,7 @@ export const Verify: React.FC = () => {
   if (!order) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
-        <h2 className="font-display text-xl font-bold text-white">Verification Record Not Found</h2>
+        <h2 className="font-display text-xl font-bold text-gray-900">Verification Record Not Found</h2>
         <p className="text-sm text-slate-455">The requested trade ID does not match any smart contract audits on this network.</p>
         <Link to="/" className="inline-flex items-center space-x-2 text-emerald-400 text-xs font-bold hover:underline">
           <ArrowLeft className="h-4 w-4" />
@@ -84,7 +84,7 @@ export const Verify: React.FC = () => {
 
       {/* Navigation Return */}
       <div className="relative z-10">
-        <Link to="/dashboard" className="inline-flex items-center space-x-1.5 text-slate-400 text-xs font-bold hover:text-white transition">
+        <Link to="/dashboard" className="inline-flex items-center space-x-1.5 text-gray-500 text-xs font-bold hover:text-gray-900 transition">
           <ArrowLeft className="h-4 w-4" />
           <span>Return to Dashboard</span>
         </Link>
@@ -100,23 +100,23 @@ export const Verify: React.FC = () => {
           <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[10px] font-bold text-emerald-400 uppercase tracking-widest inline-block">
             Verified on Cardano Preview
           </span>
-          <h1 className="font-display text-2xl font-black text-white">Supply Chain Verification Passport</h1>
-          <p className="text-xs text-slate-400">Order ID: #{order.id} • Aiken Smart Contract Audited</p>
+          <h1 className="font-display text-2xl font-black text-gray-900">Supply Chain Verification Passport</h1>
+          <p className="text-xs text-gray-500">Order ID: #{order.id} • Aiken Smart Contract Audited</p>
         </div>
 
         {/* Cryptographic metadata badge */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 border-t border-slate-900 pt-5 text-xs text-slate-400">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 border-t border-gray-100 pt-5 text-xs text-gray-500">
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Settlement Value</span>
-            <span className="font-semibold text-white mt-1 block">₳ {amountAda} ADA</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Settlement Value</span>
+            <span className="font-semibold text-gray-900 mt-1 block">₳ {amountAda} ADA</span>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Trade Value</span>
-            <span className="font-semibold text-white mt-1 block">₹{order.total_amount.toLocaleString()} INR</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Trade Value</span>
+            <span className="font-semibold text-gray-900 mt-1 block">₹{order.total_amount.toLocaleString()} INR</span>
           </div>
           <div className="col-span-2 md:col-span-1">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Verified Date</span>
-            <span className="font-semibold text-white mt-1 block">{new Date(order.created_at).toLocaleDateString([], { dateStyle: 'medium' })}</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Verified Date</span>
+            <span className="font-semibold text-gray-900 mt-1 block">{new Date(order.created_at).toLocaleDateString([], { dateStyle: 'medium' })}</span>
           </div>
         </div>
       </div>
@@ -126,31 +126,31 @@ export const Verify: React.FC = () => {
         
         {/* Crop Origin Passport */}
         <div className="glass-card rounded-2xl p-5 border-slate-855 space-y-4">
-          <h3 className="font-display text-sm font-bold text-white flex items-center space-x-1.5 pb-2 border-b border-slate-900">
+          <h3 className="font-display text-sm font-bold text-gray-900 flex items-center space-x-1.5 pb-2 border-b border-gray-100">
             <Leaf className="h-4 w-4 text-emerald-500" />
             <span>Agricultural Origin Passport</span>
           </h3>
 
           <div className="space-y-3 text-xs">
             <div className="flex justify-between">
-              <span className="text-slate-450">Produce Title:</span>
-              <span className="font-bold text-white text-right">{order.product?.title}</span>
+              <span className="text-gray-400">Produce Title:</span>
+              <span className="font-bold text-gray-900 text-right">{order.product?.title}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-455">Category / Grade:</span>
-              <span className="text-slate-200">{order.product?.category} • {order.product?.grade}</span>
+              <span className="text-gray-700">{order.product?.category} • {order.product?.grade}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-455">Quantity Traded:</span>
-              <span className="font-semibold text-white">{order.product?.quantity_available} kg</span>
+              <span className="font-semibold text-gray-900">{order.product?.quantity_available} kg</span>
             </div>
             
-            <div className="border-t border-slate-900 pt-3.5 space-y-2">
+            <div className="border-t border-gray-100 pt-3.5 space-y-2">
               <div className="flex items-center space-x-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[11px] font-bold text-white">Farmer Signatory: {order.farmer?.full_name}</span>
+                <span className="text-[11px] font-bold text-gray-900">Farmer Signatory: {order.farmer?.full_name}</span>
               </div>
-              <p className="text-[10px] text-slate-400 font-mono pl-4 truncate">WALLET: {order.farmer?.id}</p>
+              <p className="text-[10px] text-gray-500 font-mono pl-4 truncate">WALLET: {order.farmer?.id}</p>
               <p className="text-[10px] text-emerald-400 font-bold pl-4">Trust Reputation: {calculateTrustScore(order.farmer || {}, true)}%</p>
             </div>
           </div>
@@ -158,7 +158,7 @@ export const Verify: React.FC = () => {
 
         {/* Cardano Escrow script details */}
         <div className="glass-card rounded-2xl p-5 border-slate-855 space-y-4">
-          <h3 className="font-display text-sm font-bold text-white flex items-center space-x-1.5 pb-2 border-b border-slate-900">
+          <h3 className="font-display text-sm font-bold text-gray-900 flex items-center space-x-1.5 pb-2 border-b border-gray-100">
             <ShieldCheck className="h-4 w-4 text-teal-400" />
             <span>Escrow Script Audit</span>
           </h3>
@@ -166,11 +166,11 @@ export const Verify: React.FC = () => {
           <div className="space-y-3 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-455">Script Engine:</span>
-              <span className="text-slate-200">Plutus Validator V1 (Aiken)</span>
+              <span className="text-gray-700">Plutus Validator V1 (Aiken)</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-455">Validator Hash:</span>
-              <span className="font-mono text-slate-300 text-[10px] truncate max-w-[120px]">{contract?.contract_address || 'addr_test1z...escrowhash'}</span>
+              <span className="font-mono text-gray-600 text-[10px] truncate max-w-[120px]">{contract?.contract_address || 'addr_test1z...escrowhash'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-455">Status:</span>
@@ -179,12 +179,12 @@ export const Verify: React.FC = () => {
               </span>
             </div>
 
-            <div className="border-t border-slate-900 pt-3.5 space-y-2">
+            <div className="border-t border-gray-100 pt-3.5 space-y-2">
               <div className="flex items-center space-x-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="text-[11px] font-bold text-white">Buyer Signatory: {order.buyer?.full_name}</span>
+                <span className="text-[11px] font-bold text-gray-900">Buyer Signatory: {order.buyer?.full_name}</span>
               </div>
-              <p className="text-[10px] text-slate-400 font-mono pl-4 truncate">WALLET: {order.buyer?.id}</p>
+              <p className="text-[10px] text-gray-500 font-mono pl-4 truncate">WALLET: {order.buyer?.id}</p>
               <p className="text-[10px] text-emerald-400 font-bold pl-4">Trust Reputation: {calculateTrustScore(order.buyer || {}, true)}%</p>
             </div>
           </div>
@@ -194,27 +194,27 @@ export const Verify: React.FC = () => {
 
       {/* Blockchain Ledger Audit blocks trail */}
       <div className="glass-card rounded-2xl p-5 border-slate-855 space-y-4 relative z-10">
-        <h3 className="font-display text-sm font-bold text-white flex items-center space-x-1.5 pb-2 border-b border-slate-900">
+        <h3 className="font-display text-sm font-bold text-gray-900 flex items-center space-x-1.5 pb-2 border-b border-gray-100">
           <Database className="h-4 w-4 text-blue-500" />
           <span>Ledger Audit Trail</span>
         </h3>
 
         {auditBlocks.length === 0 ? (
-          <div className="py-6 text-center text-xs text-slate-500">
+          <div className="py-6 text-center text-xs text-gray-400">
             No transaction events mined for this trade ID.
           </div>
         ) : (
           <div className="space-y-3 font-mono">
             {auditBlocks.sort((a, b) => a.block_number - b.block_number).map(block => (
-              <div key={block.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center rounded-xl bg-slate-900/60 p-3 border border-slate-850 text-xs gap-2">
+              <div key={block.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center rounded-xl bg-white/80 p-3 border border-gray-100 text-xs gap-2">
                 <div className="space-y-0.5">
                   <div className="flex items-center space-x-2">
                     <span className="font-mono text-emerald-400 font-bold">BLOCK #{block.block_number}</span>
-                    <span className="font-bold text-white font-sans">{block.action.replace(/_/g, ' ')}</span>
+                    <span className="font-bold text-gray-900 font-sans">{block.action.replace(/_/g, ' ')}</span>
                   </div>
-                  <p className="font-mono text-[9px] text-slate-500 break-all">TX HASH: {block.tx_hash}</p>
+                  <p className="font-mono text-[9px] text-gray-400 break-all">TX HASH: {block.tx_hash}</p>
                 </div>
-                <div className="text-[10px] text-slate-400 font-sans">
+                <div className="text-[10px] text-gray-500 font-sans">
                   {new Date(block.created_at).toLocaleTimeString()}
                 </div>
               </div>

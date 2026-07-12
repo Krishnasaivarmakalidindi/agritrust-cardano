@@ -18,7 +18,7 @@ const AppContent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">
         <div className="text-center space-y-2">
           <div className="h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-semibold mt-2">Loading Decentralized Identity...</p>
@@ -30,7 +30,7 @@ const AppContent: React.FC = () => {
   const isFullWidthPage = location.pathname === '/' || location.pathname === '/onboarding' || location.pathname.startsWith('/verify');
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 selection:bg-emerald-500/30 selection:text-emerald-700">
       <Navbar />
       
       {isFullWidthPage ? (
@@ -45,7 +45,7 @@ const AppContent: React.FC = () => {
       ) : (
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto bg-slate-950">
+          <main className="flex-1 overflow-y-auto bg-gray-50">
             <Routes>
               <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/onboarding" replace />} />
               <Route path="/wallet" element={user ? <WalletPage /> : <Navigate to="/onboarding" replace />} />
