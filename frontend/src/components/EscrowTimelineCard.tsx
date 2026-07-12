@@ -7,6 +7,7 @@ interface EscrowTimelineCardProps {
   onAction?: () => void;
   actionText?: string;
   actionLoading?: boolean;
+  onVerify?: () => void;
 }
 
 const STAGES: { status: OrderStatus; label: string; desc: string; icon: any }[] = [
@@ -22,7 +23,7 @@ const STAGES: { status: OrderStatus; label: string; desc: string; icon: any }[] 
 ];
 
 export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({ 
-  order, onAction, actionText, actionLoading 
+  order, onAction, actionText, actionLoading, onVerify
 }) => {
   
   // Find current stage index
@@ -113,19 +114,28 @@ export const EscrowTimelineCard: React.FC<EscrowTimelineCardProps> = ({
         </div>
       </div>
 
-      {/* Action Button trigger */}
-      {onAction && actionText && (
-        <button
-          onClick={onAction}
-          disabled={actionLoading}
-          className={`w-full flex items-center justify-center space-x-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95 transition ${
-            actionLoading ? 'opacity-50 pointer-events-none' : ''
-          }`}
-        >
-          <span>{actionText}</span>
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      )}
+      {/* Action Buttons footer */}
+      <div className="flex space-x-2">
+        {onVerify && (
+          <button
+            onClick={onVerify}
+            className="flex-1 flex items-center justify-center space-x-1 border border-slate-800 bg-slate-900 hover:bg-slate-850 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition"
+          >
+            <span>Verify QR</span>
+          </button>
+        )}
+        
+        {onAction && actionText && (
+          <button
+            onClick={onAction}
+            disabled={actionLoading}
+            className="flex-1 flex items-center justify-center space-x-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95 transition"
+          >
+            <span>{actionText}</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
     </div>
   );

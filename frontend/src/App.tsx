@@ -7,9 +7,8 @@ import { Landing } from './pages/Landing';
 import { Onboarding } from './pages/Onboarding';
 import { Dashboard } from './pages/Dashboard';
 import { WalletPage } from './pages/Wallet';
-import { Explorer } from './pages/Explorer';
+import { TrustLedger } from './pages/TrustLedger';
 import { Verify } from './pages/Verify';
-import { Roadmap } from './pages/Roadmap';
 import './App.css';
 
 // Root layout shell selector
@@ -50,8 +49,7 @@ const AppContent: React.FC = () => {
             <Routes>
               <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/onboarding" replace />} />
               <Route path="/wallet" element={user ? <WalletPage /> : <Navigate to="/onboarding" replace />} />
-              <Route path="/explorer" element={user ? <Explorer /> : <Navigate to="/onboarding" replace />} />
-              <Route path="/roadmap" element={user ? <Roadmap /> : <Navigate to="/onboarding" replace />} />
+              <Route path="/ledger" element={user ? <TrustLedger /> : <Navigate to="/onboarding" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </main>

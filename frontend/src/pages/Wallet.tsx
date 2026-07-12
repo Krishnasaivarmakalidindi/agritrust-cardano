@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { walletService } from '../services/walletService';
+import { ledgerService } from '../services/ledgerService';
 import { dbService } from '../services/dbService';
 import { WalletTransaction } from '../types';
 import { 
   Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, 
-  Lock, CheckCircle2, Copy, Check, Info, Landmark, Coins 
+  Lock, CheckCircle2, Copy, Check, Landmark, Coins 
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export const WalletPage: React.FC = () => {
   const { user, wallet, refreshWallet } = useAuth();
@@ -13,12 +16,15 @@ export const WalletPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [loadingFaucet, setLoadingFaucet] = useState(false);
 
-  useEffect(() => {
+  const fetchTxs = async () => {
     if (!wallet) return;
-    const fetchTxs = async () => {
-      const list = await dbService.getWalletTransactions(wallet.id);
-      setTransactions(list);
-    };
+    const res = await walletService.getTransactions(wallet.id);
+    if (res.success && res.data) {
+      setTransactions(res.data);
+    }
+  };
+
+  useEffect(() => {
     fetchTxs();
   }, [wallet]);
 
@@ -35,31 +41,31 @@ export const WalletPage: React.FC = () => {
     try {
       const txHash = '0x' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
-      // Update wallet balance (+1000 ADA faucet)
-      const newBalance = wallet.balance + 1000.0;
-      await dbService.updateWallet(wallet.id, { balance: newBalance });
-      
-      // Create deposit transaction record
-      const newTx = await dbService.createWalletTransaction({
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-        wallet_id: wallet.id,
-        amount: 1000.0,
-        type: 'deposit',
-        status: 'confirmed',
-        tx_hash: txHash,
-        created_at: new Date().toISOString()
-      });
+      // Call walletService faucet credit
+      const res = await walletService.simulateFaucet(wallet.id, 1000.0);
+      if (res.success) {
+        // Record deposit log in DB
+        const newTx = await dbService.createWalletTransaction({
+          id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+          wallet_id: wallet.id,
+          amount: 1000.0,
+          type: 'deposit',
+          status: 'confirmed',
+          tx_hash: txHash,
+          created_at: new Date().toISOString()
+        });
 
-      // Log block to Trust Ledger
-      await dbService.createBlockchainLog({
-        action: 'FAUCET_CLAIMED',
-        data: { walletAddress: wallet.address, amountAda: 1000, txHash }
-      });
+        // Mine block in Trust Ledger
+        await ledgerService.mineBlock({
+          action: 'FAUCET_CLAIMED',
+          data: { walletAddress: wallet.address, amountAda: 1000, txHash }
+        });
 
-      setTransactions(prev => [newTx, ...prev]);
-      await refreshWallet();
+        setTransactions(prev => [newTx, ...prev]);
+        await refreshWallet();
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error claiming faucet:', err);
     } finally {
       setLoadingFaucet(false);
     }
@@ -68,14 +74,17 @@ export const WalletPage: React.FC = () => {
   if (!user || !wallet) {
     return (
       <div className="flex h-96 items-center justify-center text-slate-400">
-        Please connect your wallet or select a profile first.
+        Please connect your wallet or select a persona switch first.
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-8"
+    >
       {/* Page Title */}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight text-white">Cardano Web3 Wallet</h1>
@@ -101,8 +110,8 @@ export const WalletPage: React.FC = () => {
             </div>
             <p className="text-xs text-slate-400 mt-1">≈ ₹{(wallet.balance * 35).toLocaleString(undefined, { maximumFractionDigits: 2 })} INR</p>
           </div>
-          <div className="text-[10px] text-slate-500">
-            Cardano Preview Network • 1 ADA = ₹35 INR (Demo rate)
+          <div className="text-[10px] text-slate-500 font-mono">
+            Cardano Preview Network • 1 ADA = ₹35 INR (Estimated rate)
           </div>
         </div>
 
@@ -151,8 +160,8 @@ export const WalletPage: React.FC = () => {
               loadingFaucet ? 'opacity-50 pointer-events-none' : ''
             }`}
           >
-            <Landmark className="h-4 w-4 animate-pulse-ring" />
-            <span>{loadingFaucet ? 'Claiming ADA...' : 'Request Faucet (Claim 1,000 Test ADA)'}</span>
+            <Landmark className="h-4 w-4 shrink-0" />
+            <span>{loadingFaucet ? 'Claiming ADA...' : 'Request Test ADA'}</span>
           </button>
         </div>
 
@@ -178,12 +187,12 @@ export const WalletPage: React.FC = () => {
                   <th className="py-3 px-4 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850/60">
+              <tbody className="divide-y divide-slate-850/60 font-mono">
                 {transactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-900/30 transition">
                     
                     {/* Tx Hash */}
-                    <td className="py-3.5 px-4 font-mono text-slate-300">
+                    <td className="py-3.5 px-4 text-slate-300">
                       {tx.tx_hash ? (
                         <span className="flex items-center space-x-1.5">
                           <span className="text-emerald-500/80">#</span>
@@ -206,28 +215,28 @@ export const WalletPage: React.FC = () => {
                           : 'bg-slate-500/10 text-slate-400 border-slate-550/20'
                       }`}>
                         {tx.type === 'deposit' && <ArrowDownLeft className="h-3 w-3" />}
-                        {tx.type === 'escrow_lock' && <Lock className="h-3 w-3" />}
+                        {tx.type === 'escrow_lock' && <Lock className="h-3 w-3 animate-pulse" />}
                         {tx.type === 'escrow_release' && <ArrowUpRight className="h-3 w-3" />}
                         <span className="capitalize">{tx.type.replace('_', ' ')}</span>
                       </span>
                     </td>
 
                     {/* Tx Amount */}
-                    <td className="py-3.5 px-4 font-semibold text-white">
-                      <span className={tx.type === 'deposit' || tx.type === 'escrow_release' ? 'text-emerald-400' : 'text-orange-400'}>
+                    <td className="py-3.5 px-4 font-semibold font-display text-sm">
+                      <span className={tx.type === 'deposit' || tx.type === 'escrow_release' ? 'text-emerald-400 animate-pulse' : 'text-orange-400'}>
                         {tx.type === 'deposit' || tx.type === 'escrow_release' ? '+' : '-'} ₳ {tx.amount.toLocaleString(undefined, { minimumFractionDigits: 1 })}
                       </span>
                     </td>
 
                     {/* Timestamp */}
-                    <td className="py-3.5 px-4 text-slate-400">
+                    <td className="py-3.5 px-4 text-slate-400 font-sans">
                       {new Date(tx.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                     </td>
 
                     {/* Status */}
                     <td className="py-3.5 px-4 text-right">
                       <span className="inline-flex items-center space-x-1 text-emerald-400">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
                         <span className="font-semibold">{tx.status}</span>
                       </span>
                     </td>
@@ -239,8 +248,7 @@ export const WalletPage: React.FC = () => {
           </div>
         )}
       </div>
-
-    </div>
+    </motion.div>
   );
 };
 export default WalletPage;

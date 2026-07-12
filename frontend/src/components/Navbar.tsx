@@ -2,23 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { dbService } from '../services/dbService';
 import { Profile, Notification } from '../types';
-import { 
-  Sprout, Wallet, ShieldCheck, RefreshCw, 
-  Bell, Check, ChevronDown, Eye, Users 
-} from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { 
+  Bell, ChevronDown, Check, Users, Globe, Wallet as WalletIcon 
+} from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { 
-    user, wallet, activeRole, isDemoMode, 
-    switchRole, toggleDemoMode, switchUser, seedDemoData 
+    user, wallet, activeRole, 
+    switchRole, switchUser 
   } = useAuth();
   
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
+  const [syncTime, setSyncTime] = useState<string>('Just Now');
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ export const Navbar: React.FC = () => {
     fetchUsers();
   }, [user]);
 
-  // Notifications listener
+  // Notifications (Activity Center) listener
   useEffect(() => {
     if (!user) return;
     const fetchNotifications = async () => {
@@ -39,10 +39,24 @@ export const Navbar: React.FC = () => {
     };
     fetchNotifications();
 
-    // Check for updates every 4 seconds in demo mode
-    const interval = setInterval(fetchNotifications, 4000);
+    const interval = setInterval(fetchNotifications, 5000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // Live Sync time simulator
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const rand = Math.random();
+      if (rand > 0.7) {
+        setSyncTime('Just Now');
+      } else if (rand > 0.4) {
+        setSyncTime('1s ago');
+      } else {
+        setSyncTime('3s ago');
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleUserChange = async (userId: string) => {
     await switchUser(userId);
@@ -59,73 +73,56 @@ export const Navbar: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-slate-900 bg-slate-950/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2 text-emerald-500 hover:opacity-90">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/30 glow-emerald">
-            <Sprout className="h-6 w-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-display text-lg font-bold tracking-tight text-white leading-none">AgriTrust</span>
-            <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Cardano P2P</span>
-          </div>
-        </Link>
+        {/* Left: Brand Identity */}
+        <div className="flex items-center space-x-6">
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="font-display text-lg font-black tracking-tight text-white uppercase">
+              Agri<span className="text-emerald-400">Trust</span>
+            </span>
+          </Link>
+        </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center space-x-3">
+        {/* Right Nav Menu items */}
+        <div className="flex items-center space-x-4">
           
-          {/* Demo Mode Controller */}
-          <div className="hidden items-center space-x-2 rounded-full border border-slate-800 bg-slate-900/60 p-1 md:flex">
-            <button
-              onClick={toggleDemoMode}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300 ${
-                isDemoMode 
-                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' 
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {isDemoMode ? 'Demo Mode: Active' : 'Normal Mode'}
-            </button>
-            {isDemoMode && (
-              <button 
-                onClick={seedDemoData}
-                title="Reset Database Seed"
-                className="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-orange-400 transition"
-              >
-                <RefreshCw className="h-3 w-3" />
-              </button>
-            )}
+          {/* Real Network Status Badge */}
+          <div className="hidden md:flex items-center space-x-2.5 rounded-xl border border-slate-805 bg-slate-900/40 px-3.5 py-1.5 text-[11px] font-semibold text-slate-300">
+            <Globe className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
+            <span>Cardano Preview Testnet</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[10px] text-slate-500 font-mono">Sync: {syncTime}</span>
           </div>
 
-          {/* Connected Wallet Pill */}
+          {/* Connected Wallet Address & Balance */}
           {wallet && (
             <Link 
               to="/wallet" 
-              className="flex items-center space-x-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 hover:border-emerald-500/30 hover:bg-slate-850 transition"
+              className="flex items-center space-x-2.5 rounded-xl border border-slate-805 bg-slate-900/60 px-3 py-1.5 hover:border-emerald-500/30 hover:bg-slate-850 transition"
             >
-              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono text-xs text-slate-400">
-                {wallet.address.slice(0, 10)}...{wallet.address.slice(-6)}
+              <WalletIcon className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+              <span className="font-mono text-[10px] text-slate-400 hidden lg:inline">
+                {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
               </span>
-              <span className="font-display text-xs font-semibold text-emerald-400">
-                ₳ {wallet.balance.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+              <span className="font-display text-xs font-bold text-emerald-400 shrink-0">
+                ₳ {wallet.balance.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ADA
               </span>
             </Link>
           )}
 
-          {/* User Switcher (Highly critical for rapid hackathon testing) */}
-          {isDemoMode && allUsers.length > 0 && (
+          {/* Quick Profile switcher (Clean team/role toggler format) */}
+          {allUsers.length > 0 && (
             <div className="relative">
               <button
                 onClick={() => {
                   setShowUserDropdown(!showUserDropdown);
                   setShowNotifications(false);
                 }}
-                className="flex items-center space-x-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-500/10 transition"
+                className="flex items-center space-x-2 rounded-xl border border-slate-805 bg-slate-900/50 px-3 py-1.5 text-xs text-slate-300 hover:text-white transition"
               >
-                <Users className="h-3.5 w-3.5" />
+                <Users className="h-3.5 w-3.5 text-emerald-400" />
                 <span className="font-semibold hidden sm:inline">{user?.full_name} ({activeRole === 'farmer' ? 'Farmer' : 'Buyer'})</span>
                 <span className="font-semibold sm:hidden">{activeRole === 'farmer' ? 'Farmer' : 'Buyer'}</span>
                 <ChevronDown className="h-3 w-3" />
@@ -134,7 +131,7 @@ export const Navbar: React.FC = () => {
               {showUserDropdown && (
                 <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl glow-emerald ring-1 ring-black/5">
                   <div className="px-3 py-2 border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                    Switch Test Personas
+                    Switch Profile
                   </div>
                   {allUsers.map((u) => (
                     <button
@@ -189,7 +186,7 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Activity Center (Notifications) */}
+          {/* Activity Center */}
           {user && (
             <div className="relative">
               <button

@@ -17,7 +17,7 @@ const MOCK_PROFILES: Profile[] = [
     created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
-    id: 'buyer-organic-id',
+    id: 'buyer-priya-patel-id',
     role: 'buyer',
     full_name: 'Priya Patel (Organic Foods Ltd)',
     avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
@@ -40,7 +40,7 @@ const MOCK_WALLETS: Wallet[] = [
   },
   {
     id: 'wallet-buyer-id',
-    user_id: 'buyer-organic-id',
+    user_id: 'buyer-priya-patel-id',
     address: 'addr_test1vp7d29h6s4pq8e2mc8mlmq9j3shf20a2m3s9lqc2spclqgq4hjwd2',
     balance: 15200.0, // ADA
     locked_balance: 0.0,
@@ -104,13 +104,33 @@ let isSupabaseWorking = true;
 
 const checkSupabase = async (): Promise<boolean> => {
   if (!isSupabaseWorking) return false;
-  try {
-    const { data, error } = await supabase.from('profiles').select('id').limit(1);
-    if (error) {
+  
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+  if (supabaseUrl.includes('vxrapaxeknxavqnkkbuq') || !supabaseUrl) {
+    isSupabaseWorking = false;
+    return false;
+  }
+
+  const timeout = new Promise<boolean>((_, reject) => 
+    setTimeout(() => reject(new Error('Timeout')), 1500)
+  );
+
+  const check = async () => {
+    try {
+      const { data, error } = await supabase.from('profiles').select('id').limit(1);
+      if (error) {
+        isSupabaseWorking = false;
+        return false;
+      }
+      return true;
+    } catch (e) {
       isSupabaseWorking = false;
       return false;
     }
-    return true;
+  };
+
+  try {
+    return await Promise.race([check(), timeout]);
   } catch (e) {
     isSupabaseWorking = false;
     return false;
@@ -133,7 +153,12 @@ const setLocal = <T>(key: string, value: T): void => {
 
 // Initialize Local Mock DB
 export const initLocalDatabase = (force = false) => {
-  if (force || !localStorage.getItem('agritrust_profiles')) {
+  const existingProfiles = localStorage.getItem('agritrust_profiles');
+  const needsReseed = !existingProfiles || 
+                      !existingProfiles.includes('farmer-ram-singh-id') ||
+                      !existingProfiles.includes('buyer-priya-patel-id');
+
+  if (force || needsReseed) {
     setLocal('profiles', MOCK_PROFILES);
     setLocal('wallets', MOCK_WALLETS);
     setLocal('products', MOCK_PRODUCTS);
@@ -212,6 +237,16 @@ export const dbService = {
     return list.find(w => w.user_id === userId) || null;
   },
 
+  async getWalletById(walletId: string): Promise<Wallet | null> {
+    const live = await checkSupabase();
+    if (live) {
+      const { data, error } = await supabase.from('wallets').select('*').eq('id', walletId).single();
+      if (!error && data) return data as Wallet;
+    }
+    const list = getLocal<Wallet[]>('wallets', []);
+    return list.find(w => w.id === walletId) || null;
+  },
+
   async createWallet(wallet: Wallet): Promise<Wallet> {
     const live = await checkSupabase();
     if (live) {
@@ -267,6 +302,34 @@ export const dbService = {
     list.push(product);
     setLocal('products', list);
     return product;
+  },
+
+  async updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
+    const live = await checkSupabase();
+    if (live) {
+      const { data, error } = await supabase.from('products').update(updates).eq('id', id).select().single();
+      if (!error && data) return data as Product;
+    }
+    const list = getLocal<Product[]>('products', []);
+    const idx = list.findIndex(p => p.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...updates };
+      setLocal('products', list);
+      return list[idx];
+    }
+    return null;
+  },
+
+  async deleteProduct(id: string): Promise<boolean> {
+    const live = await checkSupabase();
+    if (live) {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (!error) return true;
+    }
+    const list = getLocal<Product[]>('products', []);
+    const filtered = list.filter(p => p.id !== id);
+    setLocal('products', filtered);
+    return true;
   },
 
   // Offers
@@ -332,13 +395,14 @@ export const dbService = {
     if (live) {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, product:products(*), buyer:profiles(*), farmer:profiles(*)')
+        .select('*, product:products(*), buyer:profiles(*), farmer:profiles(*), contract:contracts(*)')
         .or(`buyer_id.eq.${userId},farmer_id.eq.${userId}`);
       if (!error && data) return data as unknown as Order[];
     }
     const orders = getLocal<Order[]>('orders', []);
     const products = await this.getProducts();
     const profiles = getLocal<Profile[]>('profiles', []);
+    const contracts = getLocal<Contract[]>('contracts', []);
 
     return orders
       .filter(o => o.buyer_id === userId || o.farmer_id === userId)
@@ -346,7 +410,8 @@ export const dbService = {
         ...o,
         product: products.find(p => p.id === o.product_id),
         buyer: profiles.find(p => p.id === o.buyer_id),
-        farmer: profiles.find(p => p.id === o.farmer_id)
+        farmer: profiles.find(p => p.id === o.farmer_id),
+        contract: contracts.find(c => c.order_id === o.id)
       }));
   },
 
@@ -355,7 +420,7 @@ export const dbService = {
     if (live) {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, product:products(*), buyer:profiles(*), farmer:profiles(*)')
+        .select('*, product:products(*), buyer:profiles(*), farmer:profiles(*), contract:contracts(*)')
         .eq('id', id)
         .single();
       if (!error && data) return data as unknown as Order;
@@ -365,11 +430,13 @@ export const dbService = {
     if (!order) return null;
     const products = await this.getProducts();
     const profiles = getLocal<Profile[]>('profiles', []);
+    const contracts = getLocal<Contract[]>('contracts', []);
     return {
       ...order,
       product: products.find(p => p.id === order.product_id),
       buyer: profiles.find(p => p.id === order.buyer_id),
-      farmer: profiles.find(p => p.id === order.farmer_id)
+      farmer: profiles.find(p => p.id === order.farmer_id),
+      contract: contracts.find(c => c.order_id === order.id)
     };
   },
 

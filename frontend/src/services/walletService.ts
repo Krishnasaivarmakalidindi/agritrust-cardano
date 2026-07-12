@@ -1,29 +1,23 @@
-import { supabase } from './supabaseClient';
-import { Wallet } from '../types';
+import { dbService } from './dbService';
+import { Wallet, WalletTransaction } from '../types';
 import { ServiceResponse, makeResponse, makeErrorResponse } from '../types/api';
 
 export const walletService = {
-  // Create a new wallet record (called automatically during signup handle_new_user)
+  // Create a new wallet record
   async createWallet(userId: string, address: string): Promise<ServiceResponse<Wallet>> {
     try {
-      const newWallet = {
+      const newWallet: Wallet = {
+        id: `wallet-${userId}`,
         user_id: userId,
         address,
         balance: 10000.0,
         locked_balance: 0.0,
-        network: 'preview_testnet'
+        network: 'preview_testnet',
+        created_at: new Date().toISOString()
       };
 
-      const { data, error } = await supabase
-        .from('wallets')
-        .insert(newWallet)
-        .select()
-        .single();
-
-      if (error) {
-        return makeErrorResponse(`Failed to create wallet: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Wallet created successfully.', data as Wallet);
+      const data = await dbService.createWallet(newWallet);
+      return makeResponse(true, 'Wallet created successfully.', data);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected error creating wallet: ${err.message}`, err.message);
     }
@@ -32,16 +26,9 @@ export const walletService = {
   // Retrieve wallet details for a user
   async getWallet(userId: string): Promise<ServiceResponse<Wallet>> {
     try {
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error) {
-        return makeErrorResponse(`Failed to retrieve wallet: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Wallet retrieved successfully.', data as Wallet);
+      const data = await dbService.getWallet(userId);
+      if (!data) return makeErrorResponse('Wallet not found.');
+      return makeResponse(true, 'Wallet retrieved successfully.', data);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected error fetching wallet: ${err.message}`, err.message);
     }
@@ -50,28 +37,29 @@ export const walletService = {
   // Credit funds to a wallet address
   async credit(walletId: string, amount: number): Promise<ServiceResponse<Wallet>> {
     try {
-      // Fetch current balance
-      const { data: wallet, error: fetchErr } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('id', walletId)
-        .single();
-
-      if (fetchErr || !wallet) {
-        return makeErrorResponse('Wallet not found to credit.', fetchErr?.message);
+      const wallet = await dbService.getWalletById(walletId);
+      if (!wallet) {
+        return makeErrorResponse('Wallet not found to credit.');
       }
 
-      const { data, error } = await supabase
-        .from('wallets')
-        .update({ balance: Number(wallet.balance) + amount })
-        .eq('id', walletId)
-        .select()
-        .single();
+      const updated = await dbService.updateWallet(wallet.id, {
+        balance: Number(wallet.balance) + amount
+      });
+      if (!updated) return makeErrorResponse('Wallet update failed.');
 
-      if (error) {
-        return makeErrorResponse(`Failed to credit wallet: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Funds credited successfully.', data as Wallet);
+      // Record transaction
+      const newTx: WalletTransaction = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+        wallet_id: walletId,
+        amount,
+        type: 'deposit',
+        status: 'confirmed',
+        tx_hash: `0x${Math.random().toString(36).substring(2, 18)}`,
+        created_at: new Date().toISOString()
+      };
+      await dbService.createWalletTransaction(newTx);
+
+      return makeResponse(true, 'Funds credited successfully.', updated);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected error crediting wallet: ${err.message}`, err.message);
     }
@@ -80,32 +68,21 @@ export const walletService = {
   // Debit funds from a wallet balance
   async debit(walletId: string, amount: number): Promise<ServiceResponse<Wallet>> {
     try {
-      // Fetch current balance
-      const { data: wallet, error: fetchErr } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('id', walletId)
-        .single();
-
-      if (fetchErr || !wallet) {
-        return makeErrorResponse('Wallet not found to debit.', fetchErr?.message);
+      const wallet = await dbService.getWalletById(walletId);
+      if (!wallet) {
+        return makeErrorResponse('Wallet not found to debit.');
       }
 
       if (Number(wallet.balance) < amount) {
         return makeErrorResponse('Insufficient available balance.');
       }
 
-      const { data, error } = await supabase
-        .from('wallets')
-        .update({ balance: Number(wallet.balance) - amount })
-        .eq('id', walletId)
-        .select()
-        .single();
+      const updated = await dbService.updateWallet(wallet.id, {
+        balance: Number(wallet.balance) - amount
+      });
+      if (!updated) return makeErrorResponse('Wallet update failed.');
 
-      if (error) {
-        return makeErrorResponse(`Failed to debit wallet: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Funds debited successfully.', data as Wallet);
+      return makeResponse(true, 'Funds debited successfully.', updated);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected error debiting wallet: ${err.message}`, err.message);
     }
@@ -114,34 +91,34 @@ export const walletService = {
   // Lock available funds into escrow balance (Buyer locks payment)
   async lockFunds(walletId: string, amount: number): Promise<ServiceResponse<Wallet>> {
     try {
-      const { data: wallet, error: fetchErr } = await supabase
-        .from('wallets')
-        .select('balance, locked_balance')
-        .eq('id', walletId)
-        .single();
-
-      if (fetchErr || !wallet) {
-        return makeErrorResponse('Wallet not found to lock funds.', fetchErr?.message);
+      const wallet = await dbService.getWalletById(walletId);
+      if (!wallet) {
+        return makeErrorResponse('Wallet not found to lock funds.');
       }
 
       if (Number(wallet.balance) < amount) {
         return makeErrorResponse('Insufficient funds to lock in escrow contract.');
       }
 
-      const { data, error } = await supabase
-        .from('wallets')
-        .update({
-          balance: Number(wallet.balance) - amount,
-          locked_balance: Number(wallet.locked_balance) + amount
-        })
-        .eq('id', walletId)
-        .select()
-        .single();
+      const updated = await dbService.updateWallet(wallet.id, {
+        balance: Number(wallet.balance) - amount,
+        locked_balance: Number(wallet.locked_balance) + amount
+      });
+      if (!updated) return makeErrorResponse('Wallet update failed.');
 
-      if (error) {
-        return makeErrorResponse(`Failed to lock funds: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Funds locked in escrow contract address.', data as Wallet);
+      // Record lock transaction
+      const newTx: WalletTransaction = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+        wallet_id: walletId,
+        amount,
+        type: 'escrow_lock',
+        status: 'confirmed',
+        tx_hash: `0x${Math.random().toString(36).substring(2, 18)}`,
+        created_at: new Date().toISOString()
+      };
+      await dbService.createWalletTransaction(newTx);
+
+      return makeResponse(true, 'Funds locked in escrow contract address.', updated);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected lock funds error: ${err.message}`, err.message);
     }
@@ -151,40 +128,48 @@ export const walletService = {
   async releaseFunds(buyerWalletId: string, farmerWalletId: string, amount: number): Promise<ServiceResponse<boolean>> {
     try {
       // 1. Deduct locked balance from buyer
-      const { data: buyerWallet, error: buyerErr } = await supabase
-        .from('wallets')
-        .select('locked_balance')
-        .eq('id', buyerWalletId)
-        .single();
-
-      if (buyerErr || !buyerWallet) {
-        return makeErrorResponse('Buyer wallet not found.', buyerErr?.message);
+      const buyerWallet = await dbService.getWalletById(buyerWalletId);
+      if (!buyerWallet) {
+        return makeErrorResponse('Buyer wallet not found.');
       }
 
-      await supabase
-        .from('wallets')
-        .update({
-          locked_balance: Math.max(0, Number(buyerWallet.locked_balance) - amount)
-        })
-        .eq('id', buyerWalletId);
+      await dbService.updateWallet(buyerWalletId, {
+        locked_balance: Math.max(0, Number(buyerWallet.locked_balance) - amount)
+      });
 
       // 2. Add balance to farmer
-      const { data: farmerWallet, error: farmerErr } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('id', farmerWalletId)
-        .single();
-
-      if (farmerErr || !farmerWallet) {
-        return makeErrorResponse('Farmer wallet not found.', farmerErr?.message);
+      const farmerWallet = await dbService.getWalletById(farmerWalletId);
+      if (!farmerWallet) {
+        return makeErrorResponse('Farmer wallet not found.');
       }
 
-      await supabase
-        .from('wallets')
-        .update({
-          balance: Number(farmerWallet.balance) + amount
-        })
-        .eq('id', farmerWalletId);
+      await dbService.updateWallet(farmerWalletId, {
+        balance: Number(farmerWallet.balance) + amount
+      });
+
+      // Record transaction for buyer
+      const buyerTx: WalletTransaction = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+        wallet_id: buyerWalletId,
+        amount,
+        type: 'escrow_release',
+        status: 'confirmed',
+        tx_hash: `0x${Math.random().toString(36).substring(2, 18)}`,
+        created_at: new Date().toISOString()
+      };
+      await dbService.createWalletTransaction(buyerTx);
+
+      // Record transaction for farmer
+      const farmerTx: WalletTransaction = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+        wallet_id: farmerWalletId,
+        amount,
+        type: 'deposit',
+        status: 'confirmed',
+        tx_hash: `0x${Math.random().toString(36).substring(2, 18)}`,
+        created_at: new Date().toISOString()
+      };
+      await dbService.createWalletTransaction(farmerTx);
 
       return makeResponse(true, 'Funds released from escrow script successfully.', true);
     } catch (err: any) {
@@ -195,6 +180,16 @@ export const walletService = {
   // Simulated Cardano Faucet increment
   async simulateFaucet(walletId: string, amount = 1000.0): Promise<ServiceResponse<Wallet>> {
     return this.credit(walletId, amount);
+  },
+
+  // Retrieve transaction history for a wallet
+  async getTransactions(walletId: string): Promise<ServiceResponse<WalletTransaction[]>> {
+    try {
+      const data = await dbService.getWalletTransactions(walletId);
+      return makeResponse(true, 'Transactions retrieved.', data);
+    } catch (err: any) {
+      return makeErrorResponse(`Unexpected transaction fetch error: ${err.message}`, err.message);
+    }
   }
 };
 export default walletService;

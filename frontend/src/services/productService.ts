@@ -1,34 +1,27 @@
-import { supabase } from './supabaseClient';
+import { dbService } from './dbService';
 import { Product } from '../types';
 import { ServiceResponse, makeResponse, makeErrorResponse, CreateProductDTO } from '../types/api';
 
 export const productService = {
-  // Create a new crop listing in Supabase
+  // Create a new crop listing
   async createProduct(farmerId: string, dto: CreateProductDTO): Promise<ServiceResponse<Product>> {
     try {
-      const newProduct = {
+      const newProduct: Product = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
         farmer_id: farmerId,
         title: dto.title,
-        description: dto.description,
+        description: dto.description || '',
         category: dto.category,
         grade: dto.grade,
         price_per_unit: dto.price_per_unit,
         unit_type: dto.unit_type,
         quantity_available: dto.quantity_available,
         image_url: dto.image_url,
-        is_published: true
+        created_at: new Date().toISOString()
       };
-
-      const { data, error } = await supabase
-        .from('products')
-        .insert(newProduct)
-        .select()
-        .single();
-
-      if (error) {
-        return makeErrorResponse(`Failed to create product listing: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Product listed successfully.', data as Product);
+      
+      const data = await dbService.createProduct(newProduct);
+      return makeResponse(true, 'Product listed successfully.', data);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected error creating product listing: ${err.message}`, err.message);
     }
@@ -37,17 +30,9 @@ export const productService = {
   // Update existing listing details
   async updateProduct(id: string, updates: Partial<Product>): Promise<ServiceResponse<Product>> {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        return makeErrorResponse(`Failed to update product listing: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Product listing updated successfully.', data as Product);
+      const data = await dbService.updateProduct(id, updates);
+      if (!data) return makeErrorResponse('Product not found for updates.');
+      return makeResponse(true, 'Product listing updated successfully.', data);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected product update error: ${err.message}`, err.message);
     }
@@ -56,15 +41,8 @@ export const productService = {
   // Delete product listing
   async deleteProduct(id: string): Promise<ServiceResponse<boolean>> {
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        return makeErrorResponse(`Failed to delete product listing: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Product listing deleted successfully.', true);
+      const success = await dbService.deleteProduct(id);
+      return makeResponse(true, 'Product listing deleted successfully.', success);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected product deletion error: ${err.message}`, err.message);
     }
@@ -78,15 +56,12 @@ export const productService = {
   // Retrieve listings using titles or tags search queries
   async searchProducts(query: string): Promise<ServiceResponse<Product[]>> {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, farmer:profiles(*)')
-        .ilike('title', `%${query}%`);
-
-      if (error) {
-        return makeErrorResponse(`Product search failed: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Products retrieved successfully.', data as Product[]);
+      const list = await dbService.getProducts();
+      const matched = list.filter(p => 
+        p.title.toLowerCase().includes(query.toLowerCase()) || 
+        p.description?.toLowerCase().includes(query.toLowerCase())
+      );
+      return makeResponse(true, 'Products retrieved successfully.', matched);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected error searching products: ${err.message}`, err.message);
     }
@@ -95,17 +70,11 @@ export const productService = {
   // Filter listings by category tab selection
   async filterProducts(category: string): Promise<ServiceResponse<Product[]>> {
     try {
-      let query = supabase.from('products').select('*, farmer:profiles(*)').eq('is_published', true);
-      
-      if (category !== 'All') {
-        query = query.eq('category', category);
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        return makeErrorResponse(`Failed to filter products: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Filtered products retrieved.', data as Product[]);
+      const list = await dbService.getProducts();
+      const filtered = category === 'All' 
+        ? list
+        : list.filter(p => p.category === category);
+      return makeResponse(true, 'Filtered products retrieved.', filtered);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected filter error: ${err.message}`, err.message);
     }
@@ -114,15 +83,9 @@ export const productService = {
   // Retrieve active listings published by a specific farmer
   async getFarmerProducts(farmerId: string): Promise<ServiceResponse<Product[]>> {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('farmer_id', farmerId);
-
-      if (error) {
-        return makeErrorResponse(`Failed to fetch farmer listings: ${error.message}`, error.message);
-      }
-      return makeResponse(true, 'Farmer listings retrieved.', data as Product[]);
+      const list = await dbService.getProducts();
+      const filtered = list.filter(p => p.farmer_id === farmerId);
+      return makeResponse(true, 'Farmer listings retrieved.', filtered);
     } catch (err: any) {
       return makeErrorResponse(`Unexpected farmer search error: ${err.message}`, err.message);
     }

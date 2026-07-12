@@ -74,6 +74,7 @@ export interface Order {
   product?: Product;
   buyer?: Profile;
   farmer?: Profile;
+  contract?: Contract;
 }
 
 export interface Contract {

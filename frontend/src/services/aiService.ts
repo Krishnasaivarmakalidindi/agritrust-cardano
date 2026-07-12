@@ -96,7 +96,7 @@ Provide a JSON block containing market recommendations. Return ONLY valid JSON, 
     try {
       const mockBuyers: RecommendationMatch[] = [
         {
-          profile: { id: 'buyer-organic-id', full_name: 'Priya Patel (Organic Foods Ltd)', trust_score: 99 },
+          profile: { id: 'buyer-priya-patel-id', full_name: 'Priya Patel (Organic Foods Ltd)', trust_score: 99 },
           matchPercentage: 98,
           reason: 'Frequently purchases Grade A organic vegetables in large volumes.'
         },
