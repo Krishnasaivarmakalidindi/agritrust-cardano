@@ -1,162 +1,89 @@
-import { dbService } from './dbService';
-import { Wallet, Order } from '../types';
+import { ServiceResponse, makeResponse, makeErrorResponse } from '../types/api';
+import { ledgerService } from './ledgerService';
+import { contractService } from './contractService';
+import { walletService } from './walletService';
+
+export interface WalletConnectionInfo {
+  connected: boolean;
+  name: string;
+  address: string;
+  balanceAda: number;
+  network: string;
+}
 
 export const blockchainService = {
-  // Generate a mock Plutus Validator Address for Cardano
-  generateContractAddress(orderId: string): string {
-    return `addr_test1z${orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20)}escrowhash381`;
+  // Simulates or wraps Cardano Browser wallet connection (MeshJS / Window.cardano)
+  async connectWallet(walletName = 'Lace'): Promise<ServiceResponse<WalletConnectionInfo>> {
+    try {
+      // Simulate web3 wallet inject check
+      const mockAddress = 'addr_test1vp7d29h6s4pq8e2mc8mlmq9j3shf20a2m3s9lqc2spclqgq4hjwd2';
+      
+      const info: WalletConnectionInfo = {
+        connected: true,
+        name: walletName,
+        address: mockAddress,
+        balanceAda: 4500.0,
+        network: 'Preview Testnet'
+      };
+
+      return makeResponse(true, `${walletName} wallet connected successfully.`, info);
+    } catch (err: any) {
+      return makeErrorResponse('Failed to connect Cardano browser wallet.', err.message);
+    }
   },
 
-  // Mines an event on our Trust Ledger
-  async mineBlock(action: string, data: any): Promise<string> {
-    const log = await dbService.createBlockchainLog({
-      action,
-      data
-    });
-    return log.tx_hash;
+  // Authorize / sign a transaction on-chain
+  async signTransaction(txHash: string, address: string): Promise<ServiceResponse<string>> {
+    try {
+      // Simulate cryptographic key signatures
+      const signature = `ed25519_sig1${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+      return makeResponse(true, 'Transaction signed successfully.', signature);
+    } catch (err: any) {
+      return makeErrorResponse('Transaction signing rejected by user.', err.message);
+    }
   },
 
-  // 1. Contract Generated
-  async createContract(order: Order, buyerWallet: Wallet, farmerWallet: Wallet): Promise<{ contractAddress: string; txHash: string }> {
-    const contractAddress = this.generateContractAddress(order.id);
-    
-    // Create Cardano tx hash
-    const txHash = '0x' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    
-    // Save Contract record
-    await dbService.createContract({
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+  // Fetch preview ledger stats
+  async getLedgerState(): Promise<ServiceResponse<{ blockHeight: number; feeConstantAda: number }>> {
+    try {
+      const state = {
+        blockHeight: 34890,
+        feeConstantAda: 0.17
+      };
+      return makeResponse(true, 'Cardano ledger state retrieved.', state);
+    } catch (err: any) {
+      return makeErrorResponse('Failed to sync ledger state.', err.message);
+    }
+  },
+
+  // Facade wrapper forwarding to ledgerService
+  async mineBlock(action: any, data: any): Promise<any> {
+    return ledgerService.mineBlock({ action, data });
+  },
+
+  // Facade wrapper forwarding to contractService
+  async createContract(order: any, buyerWallet: any, farmerWallet: any): Promise<any> {
+    const address = `addr_test1_plutus_escrow_${order.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)}`;
+    return contractService.createContract({
       order_id: order.id,
-      contract_address: contractAddress,
-      status: 'active',
-      tx_hash: txHash,
-      created_at: new Date().toISOString()
+      contract_address: address
     });
-
-    // Mine block
-    await this.mineBlock('CONTRACT_GENERATED', {
-      orderId: order.id,
-      contractAddress,
-      buyerAddress: buyerWallet.address,
-      farmerAddress: farmerWallet.address,
-      amountAda: Math.round(order.total_amount * 0.05) // 1 INR = ~0.05 ADA in demo
-    });
-
-    return { contractAddress, txHash };
   },
 
-  // 2. Lock Funds in Escrow Contract
-  async lockFunds(order: Order, buyerWallet: Wallet, amountAda: number): Promise<string> {
-    const contract = await dbService.getContractForOrder(order.id);
-    if (!contract) throw new Error('Contract not found for order');
-
-    // 1. Deduct ADA from buyer wallet balance, move to locked balance
-    const newBuyerBalance = buyerWallet.balance - amountAda;
-    const newBuyerLocked = buyerWallet.locked_balance + amountAda;
-
-    await dbService.updateWallet(buyerWallet.id, {
-      balance: newBuyerBalance,
-      locked_balance: newBuyerLocked
-    });
-
-    // 2. Create Wallet Transactions
-    await dbService.createWalletTransaction({
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-      wallet_id: buyerWallet.id,
-      amount: amountAda,
-      type: 'escrow_lock',
-      status: 'confirmed',
-      tx_hash: contract.tx_hash,
-      created_at: new Date().toISOString()
-    });
-
-    // 3. Update contract status
-    await dbService.updateContract(contract.id, {
-      status: 'funded'
-    });
-
-    // 4. Mine block
-    const lockTxHash = '0x' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    await this.mineBlock('ESCROW_LOCKED', {
-      orderId: order.id,
-      contractAddress: contract.contract_address,
-      lockedAmountAda: amountAda,
-      buyerWalletAddress: buyerWallet.address,
-      txHash: lockTxHash
-    });
-
-    return lockTxHash;
+  // Facade wrapper forwarding to walletService
+  async lockFunds(order: any, buyerWallet: any, amount: number): Promise<any> {
+    return walletService.lockFunds(buyerWallet.id, amount);
   },
 
-  // 3. Release Funds to Farmer Wallet
-  async releaseFunds(order: Order, buyerWallet: Wallet, farmerWallet: Wallet, amountAda: number): Promise<string> {
-    const contract = await dbService.getContractForOrder(order.id);
-    if (!contract) throw new Error('Contract not found for order');
-
-    // 1. Release buyer's locked balance
-    const newBuyerLocked = Math.max(0, buyerWallet.locked_balance - amountAda);
-    await dbService.updateWallet(buyerWallet.id, {
-      locked_balance: newBuyerLocked
-    });
-
-    // 2. Add ADA to farmer's wallet balance
-    const newFarmerBalance = farmerWallet.balance + amountAda;
-    await dbService.updateWallet(farmerWallet.id, {
-      balance: newFarmerBalance
-    });
-
-    // 3. Record transactions
-    const releaseTxHash = '0x' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    
-    // Farmer transaction (deposit)
-    await dbService.createWalletTransaction({
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-      wallet_id: farmerWallet.id,
-      amount: amountAda,
-      type: 'escrow_release',
-      status: 'confirmed',
-      tx_hash: releaseTxHash,
-      created_at: new Date().toISOString()
-    });
-
-    // Update contract status
-    await dbService.updateContract(contract.id, {
-      status: 'released'
-    });
-
-    // 4. Mine block
-    await this.mineBlock('FUNDS_RELEASED', {
-      orderId: order.id,
-      contractAddress: contract.contract_address,
-      releasedAmountAda: amountAda,
-      farmerWalletAddress: farmerWallet.address,
-      txHash: releaseTxHash
-    });
-
-    return releaseTxHash;
+  // Facade wrapper forwarding to walletService
+  async releaseFunds(order: any, buyerWallet: any, farmerWallet: any, amount: number): Promise<any> {
+    return walletService.releaseFunds(buyerWallet.id, farmerWallet.id, amount);
   },
 
-  // 4. Mint Reputation NFT
-  async mintReputationNFT(orderId: string, farmer: any, buyer: any, totalAmount: number): Promise<{ nftId: string; txHash: string }> {
+  // Mint simulated Cardano reputation NFT
+  async mintReputationNFT(orderId: string, farmer: any, buyer: any, totalAmount: number): Promise<any> {
     const nftId = `nft_reputation_trade_${orderId.replace(/[^0-9]/g, '').slice(0, 4) || '104'}`;
-    const txHash = '0x' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    
-    // Mine block representing NFT creation
-    await this.mineBlock('NFT_MINTED', {
-      orderId,
-      nftTokenId: nftId,
-      policyId: 'policy_reputation_v1_cardano_preview_hash',
-      metadata: {
-        name: `AgriTrust Trade Certificate #${nftId.split('_').pop()}`,
-        farmerName: farmer.full_name,
-        buyerName: buyer.full_name,
-        tradeValueINR: totalAmount,
-        cardanoNetwork: 'preview_testnet',
-        verificationAuthority: 'AgriTrust DAO'
-      },
-      txHash
-    });
-
+    const txHash = '0x' + Math.random().toString(36).substring(2, 15);
     return { nftId, txHash };
   }
 };
