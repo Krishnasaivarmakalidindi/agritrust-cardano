@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { ledgerService } from '../services/ledgerService';
 import { BlockchainLog } from '../types';
 import { 
-  Database, ShieldCheck, RefreshCw, Globe, Play, CheckCircle2, AlertTriangle, Cpu
+  Database, ShieldCheck, RefreshCw, Globe, Play, CheckCircle2, AlertTriangle, Cpu, Link as LinkIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 export const TrustLedger: React.FC = () => {
   const { user } = useAuth();
@@ -176,6 +177,18 @@ export const TrustLedger: React.FC = () => {
                         {JSON.stringify(block.data, null, 2)}
                       </pre>
                     </div>
+
+                    {block.action === 'TRADE_COMPLETED' && block.data?.orderId && (
+                      <div className="pt-3">
+                        <Link 
+                          to={`/verify/${block.data.orderId}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition font-bold"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          View QR Certificate
+                        </Link>
+                      </div>
+                    )}
                   </div>
 
                 </div>

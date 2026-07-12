@@ -8,6 +8,11 @@ export interface Profile {
   trust_score: number;
   trades_completed: number;
   is_verified: boolean;
+  wallet_address?: string;
+  wallet_provider?: string;
+  wallet_connected?: boolean;
+  network?: string;
+  last_wallet_sync?: string;
   created_at: string;
 }
 
@@ -18,6 +23,9 @@ export interface Wallet {
   balance: number;
   locked_balance: number;
   network: string;
+  wallet_provider?: string;
+  is_connected?: boolean;
+  last_connected?: string;
   created_at: string;
 }
 
@@ -70,6 +78,9 @@ export interface Order {
   product_id: string;
   total_amount: number;
   status: OrderStatus;
+  verification_status?: 'pending' | 'verified' | 'failed';
+  nft_policy_id?: string;
+  nft_asset_id?: string;
   created_at: string;
   product?: Product;
   buyer?: Profile;
@@ -77,12 +88,19 @@ export interface Order {
   contract?: Contract;
 }
 
+export type EscrowStatus =
+  | 'CREATED' | 'FUNDED' | 'LOCKED' | 'SHIPPED' | 'DELIVERED'
+  | 'RELEASED' | 'COMPLETED' | 'REFUNDED' | 'CANCELLED' | 'DISPUTE';
+
 export interface Contract {
   id: string;
   order_id: string;
   contract_address: string;
   status: 'active' | 'funded' | 'released' | 'refunded' | 'closed';
   tx_hash?: string;
+  escrow_status?: EscrowStatus;
+  nft_policy_id?: string;
+  nft_asset_id?: string;
   created_at: string;
 }
 
@@ -125,5 +143,19 @@ export interface Notification {
   message: string;
   type: string;
   read: boolean;
+  created_at: string;
+}
+
+export interface BlockchainTransaction {
+  id: string;
+  order_id?: string;
+  transaction_hash: string;
+  block_number?: number;
+  wallet_address: string;
+  contract_address?: string;
+  status: EscrowStatus;
+  action: string;
+  confirmation_time: string;
+  simulated: boolean;
   created_at: string;
 }
