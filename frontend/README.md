@@ -8,6 +8,12 @@ AgriTrust is a decentralized, Web3-powered agricultural marketplace where farmer
 
 ---
 
+## 📊 Presentation (Pitch Deck)
+
+[View AgriTrust Pitch Deck on Gamma](https://gamma.app/docs/AgriTrust-o751jono5yy472f)
+
+---
+
 ## 🏗️ Architecture
 
 ```text
