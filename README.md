@@ -69,9 +69,7 @@ AI
 - Carbon Credits
 - Crop Insurance
 
-## Team Members
 
-(Add names)
 
 ## Repository Structure
 
